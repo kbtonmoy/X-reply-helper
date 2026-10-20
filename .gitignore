@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+._*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Node (not used at runtime, but keeps local tooling out of the repo)
+node_modules/
+package-lock.json
+
+# Packaged builds
+*.zip
+*.crx
+*.pem
