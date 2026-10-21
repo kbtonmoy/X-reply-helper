@@ -70,6 +70,18 @@ English tweets get English ones. Once you have picked about three replies, the
 extension starts feeding your recent picks back into the prompt so later
 suggestions drift toward how you actually write.
 
+### Emojis
+
+Replies can carry an emoji, but the prompts keep it on a short leash: at most
+one per reply, typically on the playful line, and only when the tweet is light,
+funny or worth celebrating. On heavy tweets — layoffs, illness, a company
+closing — the model is told to use none at all. Hype decoration
+(🚀🔥💯✨🙌) is banned outright; the ones that
+get through are small and dry (😂 😅 🥹 👀).
+
+In practice that works out to about one emoji across the five suggestions for a
+light tweet, and zero for a serious one.
+
 ### A note on voice
 
 The built-in prompts are tuned to the original author's voice, down to naming
