@@ -29,7 +29,7 @@ Leave **Model** blank to use the default.
 | OpenAI | `gpt-4o-mini` | [platform.openai.com](https://platform.openai.com/api-keys) |
 | Kimi (Moonshot) | `moonshot-v1-8k` | [platform.moonshot.cn](https://platform.moonshot.cn/console/api-keys) |
 | Token Harbor | `deepseek-v4.1-flash:free` | [tokenharbor.ai](https://tokenharbor.ai) |
-| 智谱 GLM | `glm-4-flash` | [open.bigmodel.cn](https://open.bigmodel.cn/usercenter/apikeys) |
+| Zhipu GLM | `glm-4-flash` | [open.bigmodel.cn](https://open.bigmodel.cn/usercenter/apikeys) |
 
 Each provider keeps its own key and model, so you can switch between them freely.
 
@@ -54,7 +54,8 @@ that host; if you decline, generation will fail until you allow it under
 1. Click **Reply** on any tweet.
 2. The panel opens and shows which post it is answering — `Replying to @handle`
    plus the first lines of that post, so a wrong target is obvious before you
-   use anything it suggests.
+   use anything it suggests. It follows whichever X theme you are in: light,
+   dim or lights-out.
 3. It generates five replies, each in a different style (Concrete, Question,
    Counter, Personal, Playful).
 4. Click a reply to insert it into the composer, then edit it as you like.
@@ -80,7 +81,7 @@ post above an image-only one.
 ### Posts asking you to connect
 
 When a post is an invitation rather than an argument — "let's connect", "drop
-what you're building", "comment and I'll follow back", "互关" — the replies change
+what you're building", "comment and I'll follow back" — the replies change
 shape: each one asks a single genuine question and says you would like to
 connect, phrased a different way each time. No take on the topic, no pitch.
 
@@ -89,13 +90,11 @@ connect, phrased a different way each time. No take on the topic, no pitch.
 Type your own angle into the box at the top of the panel and press **Enter**
 (Shift+Enter for a newline). This switches to rewrite mode: instead of inventing
 five takes of its own, the model returns four phrasings of *your* idea — Short,
-Sentence, Playful and Echo — without adding opinions you did not ask for. You
-can write the note in Chinese or English regardless of the reply language.
+Sentence, Playful and Echo — without adding opinions you did not ask for.
 
-The reply language follows the tweet, so Chinese tweets get Chinese replies and
-English tweets get English ones. Once you have picked about three replies, the
-extension starts feeding your recent picks back into the prompt so later
-suggestions drift toward how you actually write.
+Replies are always in English, whatever language the post is in. Once you have
+picked about three replies, the extension starts feeding your recent picks back
+into the prompt so later suggestions drift toward how you actually write.
 
 ### Emojis
 
@@ -109,12 +108,25 @@ get through are small and dry (😂 😅 🥹 👀).
 In practice that works out to about one emoji across the five suggestions for a
 light tweet, and zero for a serious one.
 
+### Keyboard
+
+| Key | Does |
+| --- | --- |
+| `1`–`5` | Insert that reply (only while the composer is empty, so typing a digit still types a digit) |
+| `Enter` | Rewrite in your own words, from the intent box |
+| `⌘`/`Ctrl` + `Enter` | Regenerate |
+| `Esc` | Close the panel |
+
+Each card also has a copy button, for when you want the text somewhere else.
+
 ### A note on voice
 
-The built-in prompts are tuned to the original author's voice, down to naming
-her in the instructions. They produce casual, short, low-key replies. If you
-want a different register, edit `SYSTEM_PROMPT_EN` and friends in
-`background.js`.
+The prompts are written around Khabirul as the person replying, and they
+produce casual, short, low-key replies. The sample replies used as voice anchors
+in `SYSTEM_PROMPT_EN` are still the original author's, so swap them for your own
+if you want a closer match — or just use the extension for a while and let the
+pick history calibrate it. For a different register altogether, edit
+`SYSTEM_PROMPT_EN` and friends in `background.js`.
 
 ## Notes on reasoning models
 
@@ -160,4 +172,8 @@ There is no analytics or telemetry of any kind.
 
 ## Credits
 
-Originally made by [@kellyyuweipeng](https://x.com/kellyyuweipeng).
+Maintained by [@kbtonmoy](https://x.com/kbtonmoy).
+
+Originally made by [@kellyyuweipeng](https://x.com/kellyyuweipeng) as
+X (Twitter) Reply Helper v0.4.0; this fork reworked provider support, reply
+targeting, thread context and the panel UI.
