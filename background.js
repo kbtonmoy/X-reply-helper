@@ -536,8 +536,55 @@ async function recordPick(tweetText, pickedText, pickedStyle) {
   console.log("[TRH] recorded pick:", entry.style, "—", entry.text.slice(0, 60));
 }
 
-async function buildPrompts(tweetText, userIntent = "") {
+// Posts whose whole point is "reply and we'll connect" — networking threads,
+// handle drops, intro calls. A take lands wrong on those; what belongs there is
+// one real question plus saying you'd like to connect.
+const CONNECT_PATTERNS = [
+  /let'?s\s+connect/i,
+  /(want|looking|happy|open|would love)\s+to\s+connect/i,
+  /connect\s+with\s+(me|you|each other)/i,
+  /drop\s+(your|a)\s+(handle|@|link|profile|site|website)/i,
+  /(reply|comment)\s+(below\s+)?(with|and)\b[^.!?]{0,40}(follow|connect|handle|dm)/i,
+  /(introduce\s+yourself|say\s+hi|say\s+hello)/i,
+  /who\s+(else\s+)?(is|are)\s+(here|building|working on)/i,
+  /follow\s+(back|each other)/i,
+  /looking\s+to\s+(meet|network)/i,
+  /互关/,
+  /认识一下/,
+  /交个朋友/,
+  /打个招呼/,
+];
+
+function isConnectPost(text) {
+  return CONNECT_PATTERNS.some((re) => re.test(String(text || "")));
+}
+
+const CONNECT_NOTE_EN =
+  `This post is an invitation to connect, not an argument to weigh in on. Every reply should do two things and nothing else: ask ONE short, genuine question (about what they build, where they are, what they're working on now) and say you'd like to connect. Vary the wording across the 5 — "would love to connect", "glad to connect", "let's keep in touch", "following along now" — never repeat the same phrase twice, and keep Kelly's casual register. No pitch, no credentials, no take on the topic.\n\n`;
+
+const CONNECT_NOTE_ZH =
+  `这条帖子是在邀请大家互相认识，不是在讲观点，所以不要评论内容本身。每条回复只做两件事：问一个简短、真诚的问题（在做什么、在哪、最近忙什么），再表达想认识一下。5 条的说法要不一样（"想认识一下"、"来交个朋友"、"保持联系"、"已关注"），不要重复同一句，保持 Kelly 平时说话的松弛感。不要自我推销、不要摆资历。\n\n`;
+
+function renderThread(thread, lang) {
+  if (!Array.isArray(thread) || !thread.length) return "";
+  const lines = thread
+    .map((t) => {
+      const who = (t.handle || t.name || "").trim();
+      const body = (t.text || t.quoted || "").trim();
+      if (!body) return "";
+      return who ? `${who}: ${body}` : body;
+    })
+    .filter(Boolean);
+  if (!lines.length) return "";
+  return lang === "zh"
+    ? `这条帖子所在的上下文（从早到近，只是背景，不是要回复的那条）：\n"""\n${lines.join("\n\n")}\n"""\n\n`
+    : `Thread so far (oldest first — background only, NOT the post you are replying to):\n"""\n${lines.join("\n\n")}\n"""\n\n`;
+}
+
+async function buildPrompts(tweetText, userIntent = "", thread = []) {
   const lang = detectLanguage(tweetText);
+  const threadBlock = renderThread(thread, lang);
+  const connect = isConnectPost(tweetText);
   const picks = await getRecentPicks(lang, 8);
   const isRewrite = !!(userIntent && userIntent.trim());
 
@@ -560,14 +607,14 @@ async function buildPrompts(tweetText, userIntent = "") {
         lang,
         mode: "rewrite",
         system: SYSTEM_PROMPT_REWRITE_ZH + calibration,
-        user: `原帖：\n"""${tweetText}"""\n\nKelly 想表达的意思（可能是中文也可能是英文，但回复必须是中文）：\n"""${userIntent.trim()}"""\n\n生成 4 条中文回复，每条用不同变体（短/句/幽默/呼应）表达 Kelly 的同一个核心意思。完全贴合她的角度，不要加新观点。返回 JSON 数组。`,
+        user: `${threadBlock}要回复的帖子：\n"""${tweetText}"""\n\nKelly 想表达的意思（可能是中文也可能是英文，但回复必须是中文）：\n"""${userIntent.trim()}"""\n\n生成 4 条中文回复，每条用不同变体（短/句/幽默/呼应）表达 Kelly 的同一个核心意思。完全贴合她的角度，不要加新观点。返回 JSON 数组。`,
       };
     }
     return {
       lang,
       mode: "rewrite",
       system: SYSTEM_PROMPT_REWRITE_EN + calibration,
-      user: `Tweet:\n"""${tweetText}"""\n\nKelly's angle (may be in Chinese or English, but replies must be in English):\n"""${userIntent.trim()}"""\n\nGenerate 4 English replies, each a different variant (Short/Sentence/Playful/Echo) of Kelly's same core idea. Match her angle exactly. Don't add new ideas. Return the JSON array.`,
+      user: `${threadBlock}The post you are replying to:\n"""${tweetText}"""\n\nKelly's angle (may be in Chinese or English, but replies must be in English):\n"""${userIntent.trim()}"""\n\nGenerate 4 English replies, each a different variant (Short/Sentence/Playful/Echo) of Kelly's same core idea. Match her angle exactly. Don't add new ideas. Return the JSON array.`,
     };
   }
 
@@ -576,14 +623,14 @@ async function buildPrompts(tweetText, userIntent = "") {
       lang,
       mode: "auto",
       system: SYSTEM_PROMPT_ZH + calibration,
-      user: `原帖：\n"""${tweetText}"""\n\n生成 5 条中文回复，每条对应一种姿势（数据/追问/反转/经验/调侃），按上面 JSON 格式返回。不要破折号、不要装饰括号、不要每条都讲道理。`,
+      user: `${threadBlock}要回复的帖子：\n"""${tweetText}"""\n\n${connect ? CONNECT_NOTE_ZH : ""}生成 5 条中文回复，每条对应一种姿势（数据/追问/反转/经验/调侃），按上面 JSON 格式返回。不要破折号、不要装饰括号、不要每条都讲道理。`,
     };
   }
   return {
     lang,
     mode: "auto",
     system: SYSTEM_PROMPT_EN + calibration,
-    user: `Tweet:\n"""${tweetText}"""\n\nGenerate 5 English replies, each using a different pose (Concrete/Question/Counter/Personal/Playful). Don't fabricate fake numbers or experiences. Return the JSON array.`,
+    user: `${threadBlock}The post you are replying to:\n"""${tweetText}"""\n\n${connect ? CONNECT_NOTE_EN : ""}Generate 5 English replies, each using a different pose (Concrete/Question/Counter/Personal/Playful). Don't fabricate fake numbers or experiences. Return the JSON array.`,
   };
 }
 
@@ -840,15 +887,15 @@ function normalizeReplies(list) {
     .filter((r) => r && r.text);
 }
 
-async function generateReplies(tweetText, userIntent = "") {
-  console.log("[TRH] generateReplies called, tweet length:", tweetText.length, "intent length:", (userIntent || "").length);
+async function generateReplies(tweetText, userIntent = "", thread = []) {
+  console.log("[TRH] generateReplies called, tweet length:", tweetText.length, "intent length:", (userIntent || "").length, "thread tweets:", (thread || []).length);
   const cfg = await getConfig();
   if (cfg.error) {
     console.warn("[TRH] config error:", cfg.error);
     return { ok: false, error: cfg.error };
   }
-  const prompts = await buildPrompts(tweetText, userIntent);
-  console.log("[TRH] using provider:", cfg.provider.name, "model:", cfg.model, "lang:", prompts.lang, "mode:", prompts.mode);
+  const prompts = await buildPrompts(tweetText, userIntent, thread);
+  console.log("[TRH] using provider:", cfg.provider.name, "model:", cfg.model, "lang:", prompts.lang, "mode:", prompts.mode, "connect:", isConnectPost(tweetText));
 
   let raw;
   try {
@@ -881,7 +928,7 @@ async function generateReplies(tweetText, userIntent = "") {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "generateReplies") {
-    generateReplies(msg.tweetText || "", msg.userIntent || "")
+    generateReplies(msg.tweetText || "", msg.userIntent || "", msg.thread || [])
       .then(sendResponse)
       .catch((e) => {
         console.error("[TRH] uncaught error:", e);

@@ -52,10 +52,37 @@ that host; if you decline, generation will fail until you allow it under
 ## Usage
 
 1. Click **Reply** on any tweet.
-2. The panel opens and generates five replies, each in a different style
-   (Concrete, Question, Counter, Personal, Playful).
-3. Click a reply to insert it into the composer, then edit it as you like.
-4. **Regenerate** gets a fresh set; **Esc** or clicking away closes the panel.
+2. The panel opens and shows which post it is answering — `Replying to @handle`
+   plus the first lines of that post, so a wrong target is obvious before you
+   use anything it suggests.
+3. It generates five replies, each in a different style (Concrete, Question,
+   Counter, Personal, Playful).
+4. Click a reply to insert it into the composer, then edit it as you like.
+5. **Regenerate** gets a fresh set; **Esc** or clicking away closes the panel.
+
+### Threads
+
+Replies are written against the conversation, not just the one post. The panel
+reads the tweets above the one you are answering — up to four of them, oldest
+dropped first if they run long — and passes them as background. The header shows
+`+2 earlier in thread` when it is using them.
+
+This matters most for short replies that mean nothing alone. Answering "honestly
+same, took us three tries" on its own produces generic lines about third
+attempts; with the thread above it, the replies know the argument is about a
+billing rewrite.
+
+The post being answered is found by document order within the reply dialog,
+not by which text happens to sit nearest on screen. That is what keeps it from
+picking up a quoted post, a tweet from the timeline behind the modal, or the
+post above an image-only one.
+
+### Posts asking you to connect
+
+When a post is an invitation rather than an argument — "let's connect", "drop
+what you're building", "comment and I'll follow back", "互关" — the replies change
+shape: each one asks a single genuine question and says you would like to
+connect, phrased a different way each time. No take on the topic, no pitch.
 
 ### Saying what you actually mean
 
@@ -98,6 +125,12 @@ retries with thinking switched off, then remembers that the model needs it and
 takes the fast path from then on — typically around 3 seconds instead of 10.
 
 If a model still fails to answer, switch to a non-reasoning one in the popup.
+
+## Known limits
+
+Image- and video-only posts have no text to read. The panel says so and names
+the poster rather than quietly answering the post above it; type your own angle
+in the box and press Enter to get replies anyway.
 
 ## Troubleshooting
 

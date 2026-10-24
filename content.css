@@ -62,6 +62,41 @@
 }
 .trh-btn-close:hover { color: #0f1419; }
 
+.trh-target {
+  padding: 8px 14px 10px;
+  border-bottom: 1px solid #eef3f4;
+  background: #f7f9f9;
+}
+.trh-target-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  margin-bottom: 3px;
+}
+.trh-target-label {
+  color: #536471;
+}
+.trh-target-who {
+  font-weight: 700;
+  color: #1d9bf0;
+}
+.trh-target-ctx {
+  margin-left: auto;
+  color: #536471;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.trh-target-text {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #0f1419;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .trh-intent {
   padding: 8px 12px 6px;
   border-bottom: 1px solid #eef3f4;
@@ -158,6 +193,13 @@
     border-bottom-color: #38444d;
   }
   .trh-title { color: #e7e9ea; }
+  .trh-target {
+    background: #1c2732;
+    border-bottom-color: #38444d;
+  }
+  .trh-target-label,
+  .trh-target-ctx { color: #8b98a5; }
+  .trh-target-text { color: #e7e9ea; }
   .trh-intent {
     background: #15202b;
     border-bottom-color: #38444d;
