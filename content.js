@@ -4,6 +4,7 @@
   let lastTweetText = "";
   let lastThread = [];
   let lastTarget = null;
+  let pointerInPanel = false;
 
   const TWEET_SEL = 'article[data-testid="tweet"], article[role="article"]';
   const MAX_CONTEXT_TWEETS = 4;
@@ -203,6 +204,31 @@
     }
   }
 
+  // X dismisses its reply dialog when a pointer event lands outside it, and
+  // this panel is outside it — so clicking the intent box used to close the
+  // reply box underneath, and the next focus then started a fresh generation.
+  // The listener has to run before X's own: capture on window fires ahead of
+  // capture on document, which is the earliest hook available to us.
+  // Only the events a dismiss-on-outside-click handler keys off. Stopping a
+  // capture-phase event also stops it reaching our own cards, so "click" must
+  // not be in here — it is handled on the bubble side below.
+  const DISMISS_EVENTS = ["pointerdown", "mousedown", "touchstart"];
+
+  function guardPointerEvents() {
+    const swallow = (e) => {
+      if (panel && panel.contains(e.target)) e.stopPropagation();
+    };
+    for (const type of DISMISS_EVENTS) {
+      window.addEventListener(type, swallow, true);
+      document.addEventListener(type, swallow, true);
+    }
+    // Everything else is stopped once it has bubbled through the panel, so our
+    // own handlers have already run by then but X never sees it.
+    for (const type of ["click", "pointerup", "mouseup", "touchend"]) {
+      panel.addEventListener(type, (e) => e.stopPropagation());
+    }
+  }
+
   function ensurePanel() {
     if (panel) return panel;
     panel = document.createElement("div");
@@ -237,9 +263,15 @@
     document.body.appendChild(panel);
     applyTheme();
     watchTheme();
+    panel.addEventListener("pointerenter", () => (pointerInPanel = true));
+    panel.addEventListener("pointerleave", () => (pointerInPanel = false));
+
+    guardPointerEvents();
     panel.querySelector(".trh-btn-close").addEventListener("click", hidePanel);
     panel.querySelector(".trh-btn-regen").addEventListener("click", regenerate);
     const intentEl = panel.querySelector(".trh-intent-input");
+
+
     intentEl.addEventListener("keydown", (e) => {
       // Enter submits, Shift+Enter inserts newline
       if (e.key === "Enter" && !e.shiftKey) {
@@ -452,9 +484,21 @@
     return composer.querySelector?.('[contenteditable="true"]') || composer;
   }
 
+  // The composer is torn down and rebuilt when it collapses, so the reference
+  // taken on focus can be pointing at a detached node by the time a reply is
+  // picked. Re-resolve it instead of inserting into nothing.
+  function liveComposer() {
+    if (activeComposer?.isConnected) return activeComposer;
+    const scope = document.querySelector('[role="dialog"]') || document;
+    const fresh = scope.querySelector('div[data-testid^="tweetTextarea_"]');
+    if (fresh) activeComposer = fresh;
+    return activeComposer?.isConnected ? activeComposer : null;
+  }
+
   function insertIntoComposer(text) {
-    if (!activeComposer || !text) return;
-    const target = editableOf(activeComposer);
+    const composer = liveComposer();
+    if (!composer || !text) return;
+    const target = editableOf(composer);
     target.focus();
 
     // X's composer is Draft.js, so React owns every node inside it.
@@ -547,10 +591,27 @@
       if (!composer) return;
       if (composer === activeComposer) return;
 
+      const { target, context } = collectConversation(composer);
+      const sameTweet =
+        target &&
+        (target.text || target.quoted) === lastTweetText &&
+        currentReplies.length > 0;
+
+      // The composer is torn down and rebuilt when it collapses, so a rebuilt
+      // one is not a new post. Show what we already have instead of paying for
+      // another round trip.
+      if (sameTweet) {
+        activeComposer = composer;
+        lastThread = context;
+        lastTarget = target;
+        showPanel();
+        renderTarget(target, context);
+        return;
+      }
+
       activeComposer = composer;
       // New tweet → fresh intent. (Don't carry the previous tweet's angle over.)
       clearIntent();
-      const { target, context } = collectConversation(composer);
       const tweetText = target ? target.text || target.quoted : "";
       if (!tweetText) {
         showPanel();
@@ -586,11 +647,11 @@
     setTimeout(() => {
       if (!isPanelVisible()) return;
       if (shouldKeepPanelVisible(document.activeElement)) return;
-      if (activeComposer && !activeComposer.isConnected) {
-        hidePanel();
-        return;
-      }
-      hidePanel();
+      if (pointerInPanel) return;
+      // Losing focus is not reason enough to close: X moves focus around on its
+      // own, and the composer collapses and re-renders when you click away.
+      // Clicking somewhere else is handled by the mousedown listener below.
+      if (!activeComposer || !activeComposer.isConnected) hidePanel();
     }, 250);
   });
 
