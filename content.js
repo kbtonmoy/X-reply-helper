@@ -28,33 +28,46 @@
     return q ? textOf(q) : "";
   }
 
+  // Site routes that look like a profile link but are not one.
+  const RESERVED_PATHS = new Set([
+    "home", "explore", "notifications", "messages", "search", "settings",
+    "compose", "i", "intent", "hashtag", "login", "signup", "tos", "privacy",
+  ]);
+
+  function isTimestampish(t) {
+    return (
+      /^\d+[smhdwy]$/i.test(t) ||
+      /^[A-Za-z]{3}\s+\d{1,2}(,\s*\d{4})?$/.test(t) ||
+      /^\d{1,2}\s+[A-Za-z]{3}$/.test(t)
+    );
+  }
+
   function authorOf(article) {
     const box = article.querySelector('[data-testid="User-Name"]') || article;
 
     // The handle comes from the profile link, not the text: name and handle sit
     // in inline spans, so innerText runs them together as "Alice@alice2h".
-    let handle = "";
-    for (const a of box.querySelectorAll("a[href]")) {
-      const m = (a.getAttribute("href") || "").match(/^\/([A-Za-z0-9_]{1,15})\/?$/);
-      if (m) {
-        handle = "@" + m[1];
-        break;
+    // Search the whole article if the name block has no profile link, which
+    // happens in some of the dialog layouts.
+    const handleFrom = (root) => {
+      for (const a of root.querySelectorAll("a[href]")) {
+        const m = (a.getAttribute("href") || "").match(/^\/([A-Za-z0-9_]{1,15})\/?$/);
+        if (m && !RESERVED_PATHS.has(m[1].toLowerCase())) return "@" + m[1];
       }
-    }
+      return "";
+    };
+    const handle = handleFrom(box) || handleFrom(article);
 
+    // The display name is the first leaf span/div with real text. Reading
+    // anchors instead picks up the timestamp link ("2h") on layouts where the
+    // name is not itself a link.
     let name = "";
-    for (const a of box.querySelectorAll("a[href]")) {
-      const t = textOf(a);
-      if (t && !t.startsWith("@")) {
-        name = t.split("\n")[0].trim();
-        break;
-      }
-    }
-    if (!name) {
-      name = textOf(box)
-        .split("\n")
-        .map((l) => l.trim())
-        .find((l) => l && !l.startsWith("@") && l !== "\u00b7") || "";
+    for (const el of box.querySelectorAll("span, div")) {
+      if (el.querySelector("span, div")) continue;
+      const t = textOf(el).split("\n")[0].trim();
+      if (!t || t.startsWith("@") || t === "\u00b7" || isTimestampish(t)) continue;
+      name = t;
+      break;
     }
     return { name, handle };
   }

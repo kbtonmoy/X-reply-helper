@@ -549,14 +549,30 @@ const CONNECT_PATTERNS = [
   /who\s+(else\s+)?(is|are)\s+(here|building|working on)/i,
   /follow\s+(back|each other)/i,
   /looking\s+to\s+(meet|network)/i,
+  /let'?s\s+(chat|talk|build\s+together|be\s+friends)/i,
+  /open\s+to\s+connecting/i,
+  /connect\s+with\s+(like.?minded|other|fellow)/i,
+  /(we'?ll|we\s+will)\s+(get\s+along|vibe)/i,
+  /(dm|dms)\s+(are\s+)?open/i,
   /互关/,
   /认识一下/,
   /交个朋友/,
   /打个招呼/,
 ];
 
+// X renders typographic punctuation, so "Let's" arrives as "Let\u2019s" and a
+// pattern written with a straight apostrophe never fires.
+function normalizePunctuation(text) {
+  return String(text || "")
+    .replace(/[\u2018\u2019\u02bc\u00b4\u2032`]/g, "'")
+    .replace(/[\u201c\u201d\u2033]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\s+/g, " ");
+}
+
 function isConnectPost(text) {
-  return CONNECT_PATTERNS.some((re) => re.test(String(text || "")));
+  const t = normalizePunctuation(text);
+  return CONNECT_PATTERNS.some((re) => re.test(t));
 }
 
 const CONNECT_NOTE_EN =
