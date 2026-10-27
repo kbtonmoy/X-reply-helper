@@ -252,7 +252,7 @@
         ></textarea>
         <div class="trh-hint">
           <span><span class="trh-kbd">\u21a9</span> rewrite in your words</span>
-          <span><span class="trh-kbd">1</span>\u2013<span class="trh-kbd">5</span> insert</span>
+          <span><span class="trh-kbd">1</span>\u2013<span class="trh-kbd trh-kbd-max">5</span> insert</span>
         </div>
       </div>
       <div class="trh-body"></div>
@@ -296,6 +296,10 @@
   function setCount(n) {
     const el = panel?.querySelector(".trh-count");
     if (el) el.textContent = n ? ` \u00b7 ${n}` : "";
+    // Reply count varies by mode (6 normally, 5 for rewrites and connect
+    // posts), so the shortcut hint follows what is actually on screen.
+    const max = panel?.querySelector(".trh-kbd-max");
+    if (max && n) max.textContent = String(Math.min(n, 9));
   }
 
   function renderTarget(target, context) {
@@ -669,8 +673,8 @@
       return;
     }
 
-    // Number keys insert a reply, but only from an empty composer: typing a digit into
-    // a draft, or into the intent box, must still type a digit.
+    // Number keys insert a reply, but only from an empty composer: typing a
+    // digit into a draft, or into the intent box, must still type a digit.
     if (!/^[1-9]$/.test(e.key) || e.metaKey || e.ctrlKey || e.altKey) return;
     const onComposer = document.activeElement?.closest?.(
       'div[data-testid^="tweetTextarea_"]',

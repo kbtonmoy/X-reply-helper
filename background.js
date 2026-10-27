@@ -717,10 +717,16 @@ function extractReplyArray(raw) {
   return null;
 }
 
+// Only uppercase a reply that actually starts with a lowercase letter. Looking
+// for the first letter anywhere mangles the replies that open with a number,
+// which the Concrete pose asks for: "6 months of nights" became "6 Months of
+// nights". Leading quotes and brackets are stepped over so a quoted opener
+// still gets capitalised.
 function capitalizeFirstLetter(text) {
-  const index = text.search(/[A-Za-z]/);
-  if (index < 0) return text;
-  return text.slice(0, index) + text[index].toUpperCase() + text.slice(index + 1);
+  const match = text.match(/^(\s*["'\u2018\u201c([]*\s*)([a-z])/);
+  if (!match) return text;
+  const [, prefix, letter] = match;
+  return prefix + letter.toUpperCase() + text.slice(prefix.length + 1);
 }
 
 function normalizeReplies(list) {
