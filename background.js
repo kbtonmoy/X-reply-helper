@@ -114,6 +114,14 @@ If a reply could fit in a LinkedIn post or a startup blog, it's wrong. Rewrite i
 
 ABSOLUTE LANGUAGE RULE: every reply in English. Zero Chinese.
 
+═══ SIMPLE LANGUAGE ═══
+- Always use easy, everyday words.
+- Keep sentences short and simple. One clear idea per sentence.
+- Prefer common words like "use", "help", "make", and "start" over formal or technical words.
+- Avoid jargon, buzzwords, abstract phrasing, and long clauses.
+- If a reply needs both a question and a comment, use two short sentences instead of one complex sentence.
+- Write so a non-native English speaker can understand it on the first read.
+
 ═══ KELLY'S VOICE — STUDY THESE REAL SAMPLES ═══
 The user (Khabirul) wrote these themselves. Match THIS voice, not generic Twitter banter:
 
@@ -139,10 +147,7 @@ What this voice IS NOT:
 - NOT contrarian by default. They agree often, just add something.
 
 ═══ FORMAT ═══
-- Capitalization is FLEXIBLE. Both work and Khabirul uses both:
-  - Sentence-initial capital, rest lowercase: "Wonder what's the reasoning behind" / "The entrepreneur version of..."
-  - Or fully lowercase: "very inspiring, there's always room for..."
-  - Pick whichever feels more natural per reply. NEVER use ALL CAPS or sentence-Case-Every-Word.
+- Start every reply with a capital letter. NEVER use ALL CAPS or Capitalize Every Word.
 - "I" can be "I" or "i". Either works.
 - Periods are FINE. Use them naturally. Don't force them off.
 - NEVER use em dash (—), en dash (–), or hyphen-as-dash (-).
@@ -150,7 +155,7 @@ What this voice IS NOT:
 - Straight quotes ' ' " " are fine.
 - No hashtags, no @mentions.
 - Emojis: use them, sparingly, where they actually land. ONE per reply, maximum.
-  - If the tweet is light, funny, warm or celebratory: one or two of the 5 SHOULD carry an emoji. A wall of plain text reads colder than Khabirul actually is.
+  - If the tweet is light, funny, warm or celebratory: one or two of the 5 MUST carry a relevant emoji. A wall of plain text reads colder than Khabirul actually is.
   - If the tweet is heavy (layoff, illness, grief, a project dying): none at all. An emoji there reads as not having read the room.
   - Dry and small beats loud: 😂 🙃 👀 🥹 😅 ☕ 🤝. Hype decoration is almost always wrong here (🚀🔥💯✨🙌).
   - NEVER open a reply with one, NEVER stack two, NEVER use one to replace the point of the reply.
@@ -282,6 +287,8 @@ const SYSTEM_PROMPT_REWRITE_EN = `You're rewriting Khabirul's idea into Twitter 
 
 ═══ ABSOLUTE RULES ═══
 - Output language is ALWAYS English.
+- Always use easy, everyday words and short, simple sentences.
+- Use one clear idea per sentence. Avoid jargon, buzzwords, formal words, and long clauses.
 - DO NOT add new ideas, observations, or angles Khabirul didn't include.
 - DO NOT pad with generic Twitter wisdom or "value-add".
 - DO NOT fabricate fake numbers, fake experiences, or forced jokes.
@@ -296,13 +303,13 @@ Real samples they've written themselves (match this register):
 Warm, slightly polished but casual. Not Twitter-bro. Sentence-initial caps OR fully lowercase — both work.
 
 ═══ FORMAT ═══
-- Capitalization is flexible (sentence-initial cap or fully lowercase, never ALL CAPS).
+- Start every reply with a capital letter. Never use ALL CAPS or Capitalize Every Word.
 - "I" can be "I" or "i".
 - Periods optional, use naturally.
 - NEVER use em dash (—), en dash (–), hyphen-as-dash (-).
 - NEVER use 「」 or decorative brackets.
 - No hashtags, no @mentions.
-- Emojis: ONE per reply, maximum, and in at most one of the 4 variants — usually the Playful one, and only if Khabirul's angle is light. If their angle is serious or the tweet is heavy, use none. Never open with one, never stack two, never use hype decoration (🚀🔥💯✨🙌).
+- Emojis: ONE per reply, maximum, and in exactly one of the 4 variants when Khabirul's angle is light — usually the Playful one. If their angle is serious or the tweet is heavy, use none. Never open with one, never stack two, never use hype decoration (🚀🔥💯✨🙌).
 
 ═══ BANNED PHRASES ═══
 Empty openers: "great point", "so true", "this is spot on", "love this", "exactly", "100%", "facts".
@@ -376,8 +383,41 @@ function isConnectPost(text) {
   return CONNECT_PATTERNS.some((re) => re.test(t));
 }
 
-const CONNECT_NOTE_EN =
-  `This post is an invitation to connect, not an argument to weigh in on. Every reply should do two things and nothing else: ask ONE short, genuine question (about what they build, where they are, what they're working on now) and say you'd like to connect. Vary the wording across the 5 — "would love to connect", "glad to connect", "let's keep in touch", "following along now" — never repeat the same phrase twice, and keep Khabirul's casual register. No pitch, no credentials, no take on the topic.\n\n`;
+// A different mix is chosen on each generation so repeated runs do not collapse
+// into five versions of "what are you building?".
+const CONNECT_QUESTION_LENSES = [
+  ["Right now", "Ask about the specific project, priority, or problem holding their attention now."],
+  ["Origin", "Ask what first pulled them toward this work, idea, or community."],
+  ["Surprise", "Ask what has surprised them most or changed their mind lately."],
+  ["Tradeoff", "Ask about a choice, tension, or difficult part they are navigating."],
+  ["Next", "Ask about the next experiment, milestone, or result they hope to reach."],
+  ["People", "Ask who they are hoping to meet or what kind of conversation they want from the post."],
+  ["Rabbit hole", "Ask which idea, tool, or topic they cannot stop exploring lately."],
+  ["Proud of", "Ask which recent piece of work or progress feels most meaningful to them."],
+  ["Collaboration", "Ask what kind of collaboration or exchange would be useful or fun for them."],
+  ["Underrated", "Ask what part of their field or work deserves more attention."],
+];
+
+function pickConnectLenses(count = 5) {
+  const choices = [...CONNECT_QUESTION_LENSES];
+  for (let i = choices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [choices[i], choices[j]] = [choices[j], choices[i]];
+  }
+  return choices.slice(0, count);
+}
+
+function buildConnectPrompt() {
+  const lenses = pickConnectLenses();
+  const lensList = lenses
+    .map(([label, instruction], i) => `${i + 1}. "${label}" — ${instruction}`)
+    .join("\n");
+  const output = lenses
+    .map(([label]) => `{"style":"${label}","text":"..."}`)
+    .join(",");
+
+  return `This post is an invitation to connect, not an argument to weigh in on. Ignore the normal Concrete/Question/Counter/Personal/Playful poses. Generate exactly 5 connection replies using these five different curiosity lenses:\n${lensList}\n\nEvery reply must:\n- Start with a capital letter.\n- Use only easy, everyday words and short, simple sentences. Use two short sentences instead of one long sentence.\n- Ask exactly ONE genuine question and naturally signal that Khabirul wants to connect.\n- Use a different question idea and opening stem. Do not write five variations of "what are you building/working on?"\n- Ground the question in a concrete detail from the post when one exists. If the post is generic, use the assigned lens without inventing facts.\n- Vary placement: at least two should lead with the question, at least two should lead with the connection, and one may weave them together.\n- Vary the connection language. Possible registers include "would be good to connect", "glad to connect", "let's keep in touch", and "following along", but do not copy one phrase twice.\n- Include one relevant, understated emoji in exactly one of the five replies. Never start with it. Good fits include 🤝, 👋, or 🙂.\n- Sound warm, curious, and casual. Keep it concise, with no pitch, credentials, generic praise, jargon, or take on the topic.\n\nStyle label = the assigned lens. Return ONLY this JSON array, no prose, no markdown:\n[${output}]`;
+}
 
 function renderThread(thread) {
   if (!Array.isArray(thread) || !thread.length) return "";
@@ -415,11 +455,20 @@ async function buildPrompts(tweetText, userIntent = "", thread = []) {
     };
   }
 
+  if (connect) {
+    return {
+      lang: "en",
+      mode: "connect",
+      system: SYSTEM_PROMPT_EN + calibration,
+      user: `${threadBlock}The post you are replying to:\n"""${tweetText}"""\n\n${buildConnectPrompt()}`,
+    };
+  }
+
   return {
     lang: "en",
     mode: "auto",
     system: SYSTEM_PROMPT_EN + calibration,
-    user: `${threadBlock}The post you are replying to:\n"""${tweetText}"""\n\n${connect ? CONNECT_NOTE_EN : ""}Generate 5 replies, each using a different pose (Concrete/Question/Counter/Personal/Playful). Don't fabricate fake numbers or experiences. Return the JSON array.`,
+    user: `${threadBlock}The post you are replying to:\n"""${tweetText}"""\n\nGenerate 5 replies, each using a different pose (Concrete/Question/Counter/Personal/Playful). Don't fabricate fake numbers or experiences. Return the JSON array.`,
   };
 }
 
@@ -664,14 +713,22 @@ function extractReplyArray(raw) {
   return null;
 }
 
+function capitalizeFirstLetter(text) {
+  const index = text.search(/[A-Za-z]/);
+  if (index < 0) return text;
+  return text.slice(0, index) + text[index].toUpperCase() + text.slice(index + 1);
+}
+
 function normalizeReplies(list) {
   return list
     .map((r) => {
-      if (typeof r === "string") return { style: "Reply", text: r.trim() };
+      if (typeof r === "string") {
+        return { style: "Reply", text: capitalizeFirstLetter(r.trim()) };
+      }
       if (!r || typeof r !== "object") return null;
       const text = r.text ?? r.reply ?? r.content ?? r.message ?? "";
       const style = r.style ?? r.pose ?? r.type ?? r.label ?? "Reply";
-      return { style: String(style), text: String(text).trim() };
+      return { style: String(style), text: capitalizeFirstLetter(String(text).trim()) };
     })
     .filter((r) => r && r.text);
 }

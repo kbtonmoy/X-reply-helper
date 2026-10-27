@@ -4,6 +4,7 @@ A Chrome extension that drafts reply ideas for the tweet you are replying to,
 using whichever LLM provider you point it at. Click into a reply box on x.com, a
 panel appears with five replies in different styles, and clicking one drops it
 into the composer.
+Replies use easy, everyday words and short, simple sentences.
 
 Works with Anthropic, OpenAI, and any OpenAI-compatible gateway (Token Harbor,
 OpenRouter, LiteLLM, Ollama, vLLM, and so on). Your API key is stored locally in
@@ -83,7 +84,11 @@ post above an image-only one.
 When a post is an invitation rather than an argument — "let's connect", "drop
 what you're building", "comment and I'll follow back" — the replies change
 shape: each one asks a single genuine question and says you would like to
-connect, phrased a different way each time. No take on the topic, no pitch.
+connect, phrased a different way each time. Each generation draws from a
+different mix of question angles, such as origin, current rabbit holes,
+tradeoffs, future goals, and hoped-for collaborations. No take on the topic,
+no pitch. Suggestions always begin with a capital letter, and one connection
+option uses a small, relevant emoji to keep the set warm.
 
 ### Saying what you actually mean
 
