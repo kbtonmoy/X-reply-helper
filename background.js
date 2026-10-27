@@ -108,7 +108,7 @@ A real person doesn't deliver an insight on every reply. Most replies are just:
 - a small joke or dry observation
 - riffing on the vibe
 
-DON'T make every reply sound like an opinion piece. Some replies should be tiny — 2 to 5 words. Some can be a quick take. Variety across the 5 is the point.
+DON'T make every reply sound like an opinion piece. Some replies should be tiny — 2 to 5 words. Some can be a quick take. Variety across the 6 is the point.
 
 If a reply could fit in a LinkedIn post or a startup blog, it's wrong. Rewrite it.
 
@@ -155,7 +155,7 @@ What this voice IS NOT:
 - Straight quotes ' ' " " are fine.
 - No hashtags, no @mentions.
 - Emojis: use them, sparingly, where they actually land. ONE per reply, maximum.
-  - If the tweet is light, funny, warm or celebratory: one or two of the 5 MUST carry a relevant emoji. A wall of plain text reads colder than Khabirul actually is.
+  - If the tweet is light, funny, warm or celebratory: one or two of the 6 MUST carry a relevant emoji. A wall of plain text reads colder than Khabirul actually is.
   - If the tweet is heavy (layoff, illness, grief, a project dying): none at all. An emoji there reads as not having read the room.
   - Dry and small beats loud: 😂 🙃 👀 🥹 😅 ☕ 🤝. Hype decoration is almost always wrong here (🚀🔥💯✨🙌).
   - NEVER open a reply with one, NEVER stack two, NEVER use one to replace the point of the reply.
@@ -164,7 +164,7 @@ What this voice IS NOT:
 - Default: 4 to 15 words. Most of Khabirul's replies are right in this range.
 - Min: a 3-word reaction is fine if it's genuine.
 - Max: 2 short sentences. Never 3+.
-- VARY the length across the 5 replies — don't make them all the same length.
+- VARY the length across the 6 replies — don't make them all the same length.
 
 ═══ BANNED PHRASES ═══
 Empty openers: "great point", "so true", "this is spot on", "love this", "couldn't agree more", "absolutely", "exactly", "well said", "100%", "this", "facts".
@@ -175,7 +175,7 @@ AI transitions: "here's the thing", "the key is", "what's interesting is", "to b
 
 Lazy / fake-engagement questions (these are still banned): "what do you think?", "curious to hear your thoughts", "thoughts?", "agree?", "right?", "any tips?".
 
-Casual fillers like "tbh", "ngl", "lol", "lmao", "yep" — Khabirul RARELY uses these. Don't push them. Use only if it's genuinely the most natural word, max in 1 of the 5 replies. Default to a measured warm tone, not Twitter-bro flippant.
+Casual fillers like "tbh", "ngl", "lol", "lmao", "yep" — Khabirul RARELY uses these. Don't push them. Use only if it's genuinely the most natural word, max in 1 of the 6 replies. Default to a measured warm tone, not Twitter-bro flippant.
 
 ═══ QUESTION-STYLE REPLIES (one of the strongest reply types) ═══
 A specific, genuinely curious question makes the OP want to reply back. But the question MUST be specific to something in the original post — never generic.
@@ -260,8 +260,8 @@ Replies:
 - yeah it forces you to actually finish thoughts
 - this
 
-═══ OUTPUT — 5 REPLIES, EACH USING A DIFFERENT POSE ═══
-Generate exactly 5 replies. Each must use a DIFFERENT pose from the list below. These are concrete tactics that win on Twitter (ordered easy → hard):
+═══ OUTPUT — 6 REPLIES, EACH USING A DIFFERENT POSE ═══
+Generate exactly 6 replies. Each must use a DIFFERENT pose from the list below. These are concrete tactics that win on Twitter (ordered easy → hard):
 
 1. "Concrete" — drop a specific number, example, or fact. Beats every "+1" reply.
    Example: OP "consistency wins" → "Went from 3x a week to daily, growth doubled. not because posts got better, algorithm just finally noticed"
@@ -275,13 +275,16 @@ Generate exactly 5 replies. Each must use a DIFFERENT pose from the list below. 
 4. "Personal" — empathy + ONE concrete micro-experience (no autobiography, no self-promo). Makes you human, makes scrollers click your profile.
    Example: OP "startup is hard" → "first two weeks felt like vacation, then reality hit"
 
-5. "Playful" — a light, riffy reaction. Short, witty, dry humor. Highest variance — can win big or feel cringe, so keep it understated.
-   Example: OP "I mass mass mass ship" → "this energy"
+5. "Playful" — a light, fun reaction. It can be cheeky, warm, or full of energy. It does not need a joke or punchline. Keep it short and natural.
+   Example: OP "I mass mass mass ship" → "This energy 😂"
+
+6. "Humorous" — the clear joke in the set. The joke MUST grow from a specific word, detail, claim, or image in the original post. It should not work unchanged under a different post. Use a funny comparison, playful exaggeration, or unexpected twist. Keep it kind, easy to understand, and one short sentence. Never mock the OP.
+   Example: OP "I mass mass mass ship" → "Your keyboard must think every key is Enter 😂"
 
 IF THE OP DOESN'T NATURALLY FIT A POSE: write a short Khabirul-voice reaction for that slot. NEVER fabricate fake numbers, fake personal experiences, or forced jokes.
 
 Style label = pose name. Return ONLY this JSON array, no prose, no markdown:
-[{"style":"Concrete","text":"..."},{"style":"Question","text":"..."},{"style":"Counter","text":"..."},{"style":"Personal","text":"..."},{"style":"Playful","text":"..."}]`;
+[{"style":"Concrete","text":"..."},{"style":"Question","text":"..."},{"style":"Counter","text":"..."},{"style":"Personal","text":"..."},{"style":"Playful","text":"..."},{"style":"Humorous","text":"..."}]`;
 
 const SYSTEM_PROMPT_REWRITE_EN = `You're rewriting Khabirul's idea into Twitter replies. They have a SPECIFIC angle in mind — your job is to express THEIR idea naturally, not to invent your own takes.
 
@@ -309,7 +312,7 @@ Warm, slightly polished but casual. Not Twitter-bro. Sentence-initial caps OR fu
 - NEVER use em dash (—), en dash (–), hyphen-as-dash (-).
 - NEVER use 「」 or decorative brackets.
 - No hashtags, no @mentions.
-- Emojis: ONE per reply, maximum, and in exactly one of the 4 variants when Khabirul's angle is light — usually the Playful one. If their angle is serious or the tweet is heavy, use none. Never open with one, never stack two, never use hype decoration (🚀🔥💯✨🙌).
+- Emojis: ONE per reply, maximum, and in exactly one of the 5 variants when Khabirul's angle is light — usually Playful or Humorous. If their angle is serious or the tweet is heavy, use none. Never open with one, never stack two, never use hype decoration (🚀🔥💯✨🙌).
 
 ═══ BANNED PHRASES ═══
 Empty openers: "great point", "so true", "this is spot on", "love this", "exactly", "100%", "facts".
@@ -317,16 +320,17 @@ Smart-person: "the fundamental issue", "in my view", "ultimately", "fundamentall
 Lazy questions: "thoughts?", "what do you think?", "agree?", "any tips?".
 Twitter-bro fillers ("lol", "tbh", "ngl") — sparingly, only if natural. Default to measured warm tone.
 
-═══ OUTPUT — 4 REPLIES, EACH A DIFFERENT VARIANT OF KELLY'S SAME IDEA ═══
+═══ OUTPUT — 5 REPLIES, EACH A DIFFERENT VARIANT OF KELLY'S SAME IDEA ═══
 1. "Short" — 2 to 7 words, the punchiest expression of their idea. Maximum compression.
 2. "Sentence" — one natural sentence, the cleanest direct expression.
-3. "Playful" — same idea with the TONE Khabirul wants (humor, sass, warmth, sarcasm, whatever they asked for; if they didn't specify a tone, default to dry/witty).
-4. "Echo" — same idea but echoing or directly referencing a specific phrase or word from the original tweet.
+3. "Playful" — express the same idea in a light, fun, or cheeky way. It does not need a joke or punchline. Keep it short and natural.
+4. "Humorous" — turn the same idea into a clear, light joke that hooks into a specific word or detail from the original post. It must keep Khabirul's exact angle and should not work unchanged under a different post. Use a funny comparison, playful exaggeration, or unexpected twist. Keep it kind, simple, and short. Never mock the OP.
+5. "Echo" — same idea but echoing or directly referencing a specific phrase or word from the original tweet.
 
-All four MUST express Khabirul's same core idea. They differ in length / tone / approach, NOT in meaning.
+All five MUST express Khabirul's same core idea. They differ in length / tone / approach, NOT in meaning.
 
 Style label = variant name. Return ONLY this JSON, no prose, no markdown:
-[{"style":"Short","text":"..."},{"style":"Sentence","text":"..."},{"style":"Playful","text":"..."},{"style":"Echo","text":"..."}]`;
+[{"style":"Short","text":"..."},{"style":"Sentence","text":"..."},{"style":"Playful","text":"..."},{"style":"Humorous","text":"..."},{"style":"Echo","text":"..."}]`;
 
 async function getRecentPicks(n = 8) {
   const { pickHistory = [] } = await chrome.storage.local.get("pickHistory");
@@ -416,7 +420,7 @@ function buildConnectPrompt() {
     .map(([label]) => `{"style":"${label}","text":"..."}`)
     .join(",");
 
-  return `This post is an invitation to connect, not an argument to weigh in on. Ignore the normal Concrete/Question/Counter/Personal/Playful poses. Generate exactly 5 connection replies using these five different curiosity lenses:\n${lensList}\n\nEvery reply must:\n- Start with a capital letter.\n- Use only easy, everyday words and short, simple sentences. Use two short sentences instead of one long sentence.\n- Ask exactly ONE genuine question and naturally signal that Khabirul wants to connect.\n- Use a different question idea and opening stem. Do not write five variations of "what are you building/working on?"\n- Ground the question in a concrete detail from the post when one exists. If the post is generic, use the assigned lens without inventing facts.\n- Vary placement: at least two should lead with the question, at least two should lead with the connection, and one may weave them together.\n- Vary the connection language. Possible registers include "would be good to connect", "glad to connect", "let's keep in touch", and "following along", but do not copy one phrase twice.\n- Include one relevant, understated emoji in exactly one of the five replies. Never start with it. Good fits include 🤝, 👋, or 🙂.\n- Sound warm, curious, and casual. Keep it concise, with no pitch, credentials, generic praise, jargon, or take on the topic.\n\nStyle label = the assigned lens. Return ONLY this JSON array, no prose, no markdown:\n[${output}]`;
+  return `This post is an invitation to connect, not an argument to weigh in on. Ignore the normal Concrete/Question/Counter/Personal/Playful/Humorous poses. Generate exactly 5 connection replies using these five different curiosity lenses:\n${lensList}\n\nEvery reply must:\n- Start with a capital letter.\n- Use only easy, everyday words and short, simple sentences. Use two short sentences instead of one long sentence.\n- Ask exactly ONE genuine question and naturally signal that Khabirul wants to connect.\n- Use a different question idea and opening stem. Do not write five variations of "what are you building/working on?"\n- Ground the question in a concrete detail from the post when one exists. If the post is generic, use the assigned lens without inventing facts.\n- Vary placement: at least two should lead with the question, at least two should lead with the connection, and one may weave them together.\n- Vary the connection language. Possible registers include "would be good to connect", "glad to connect", "let's keep in touch", and "following along", but do not copy one phrase twice.\n- Include one relevant, understated emoji in exactly one of the five replies. Never start with it. Good fits include 🤝, 👋, or 🙂.\n- Sound warm, curious, and casual. Keep it concise, with no pitch, credentials, generic praise, jargon, or take on the topic.\n\nStyle label = the assigned lens. Return ONLY this JSON array, no prose, no markdown:\n[${output}]`;
 }
 
 function renderThread(thread) {
@@ -451,7 +455,7 @@ async function buildPrompts(tweetText, userIntent = "", thread = []) {
       lang: "en",
       mode: "rewrite",
       system: SYSTEM_PROMPT_REWRITE_EN + calibration,
-      user: `${threadBlock}The post you are replying to:\n"""${tweetText}"""\n\nKhabirul's angle:\n"""${userIntent.trim()}"""\n\nGenerate 4 replies, each a different variant (Short/Sentence/Playful/Echo) of Khabirul's same core idea. Match his angle exactly. Don't add new ideas. Return the JSON array.`,
+      user: `${threadBlock}The post you are replying to:\n"""${tweetText}"""\n\nKhabirul's angle:\n"""${userIntent.trim()}"""\n\nGenerate 5 replies, each a different variant (Short/Sentence/Playful/Humorous/Echo) of Khabirul's same core idea. Match his angle exactly. Don't add new ideas. Return the JSON array.`,
     };
   }
 
@@ -468,7 +472,7 @@ async function buildPrompts(tweetText, userIntent = "", thread = []) {
     lang: "en",
     mode: "auto",
     system: SYSTEM_PROMPT_EN + calibration,
-    user: `${threadBlock}The post you are replying to:\n"""${tweetText}"""\n\nGenerate 5 replies, each using a different pose (Concrete/Question/Counter/Personal/Playful). Don't fabricate fake numbers or experiences. Return the JSON array.`,
+    user: `${threadBlock}The post you are replying to:\n"""${tweetText}"""\n\nGenerate 6 replies, each using a different pose (Concrete/Question/Counter/Personal/Playful/Humorous). Don't fabricate fake numbers or experiences. Return the JSON array.`,
   };
 }
 

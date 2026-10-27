@@ -2,7 +2,7 @@
 
 A Chrome extension that drafts reply ideas for the tweet you are replying to,
 using whichever LLM provider you point it at. Click into a reply box on x.com, a
-panel appears with five replies in different styles, and clicking one drops it
+panel appears with six replies in different styles, and clicking one drops it
 into the composer.
 Replies use easy, everyday words and short, simple sentences.
 
@@ -57,8 +57,9 @@ that host; if you decline, generation will fail until you allow it under
    plus the first lines of that post, so a wrong target is obvious before you
    use anything it suggests. It follows whichever X theme you are in: light,
    dim or lights-out.
-3. It generates five replies, each in a different style (Concrete, Question,
-   Counter, Personal, Playful).
+3. It generates six replies, each in a different style (Concrete, Question,
+   Counter, Personal, Playful, Humorous). Playful stays light and fun. Humorous
+   gives you a clear joke based on a specific detail in the post.
 4. Click a reply to insert it into the composer, then edit it as you like.
 5. **Regenerate** gets a fresh set; **Esc** or clicking away closes the panel.
 
@@ -94,8 +95,9 @@ option uses a small, relevant emoji to keep the set warm.
 
 Type your own angle into the box at the top of the panel and press **Enter**
 (Shift+Enter for a newline). This switches to rewrite mode: instead of inventing
-five takes of its own, the model returns four phrasings of *your* idea — Short,
-Sentence, Playful and Echo — without adding opinions you did not ask for.
+six takes of its own, the model returns five phrasings of *your* idea — Short,
+Sentence, Playful, Humorous and Echo — without adding opinions you did not ask
+for.
 
 Replies are always in English, whatever language the post is in. Once you have
 picked about three replies, the extension starts feeding your recent picks back
@@ -110,14 +112,14 @@ closing — the model is told to use none at all. Hype decoration
 (🚀🔥💯✨🙌) is banned outright; the ones that
 get through are small and dry (😂 😅 🥹 👀).
 
-In practice that works out to about one emoji across the five suggestions for a
+In practice that works out to about one emoji across the suggestions for a
 light tweet, and zero for a serious one.
 
 ### Keyboard
 
 | Key | Does |
 | --- | --- |
-| `1`–`5` | Insert that reply (only while the composer is empty, so typing a digit still types a digit) |
+| `1`–`6` | Insert that reply (only while the composer is empty, so typing a digit still types a digit) |
 | `Enter` | Rewrite in your own words, from the intent box |
 | `⌘`/`Ctrl` + `Enter` | Regenerate |
 | `Esc` | Close the panel |

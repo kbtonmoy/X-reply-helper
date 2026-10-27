@@ -669,7 +669,7 @@
       return;
     }
 
-    // 1-5 insert a reply, but only from an empty composer: typing a digit into
+    // Number keys insert a reply, but only from an empty composer: typing a digit into
     // a draft, or into the intent box, must still type a digit.
     if (!/^[1-9]$/.test(e.key) || e.metaKey || e.ctrlKey || e.altKey) return;
     const onComposer = document.activeElement?.closest?.(
