@@ -424,41 +424,110 @@ const CONNECT_QUESTION_LENSES = [
   ["Underrated", "Ask what part of their field or work deserves more attention."],
 ];
 
-function pickConnectLenses(count = 5) {
-  const choices = [...CONNECT_QUESTION_LENSES];
-  for (let i = choices.length - 1; i > 0; i--) {
+// Left to itself the model opens every set with "Would love to connect", so the
+// wording is dealt out here instead of listed as examples in the prompt.
+const CONNECT_OPENERS = [
+  "Would love to connect",
+  "Would be great to connect",
+  "Would be good to connect",
+  "Let's connect",
+  "Glad to connect",
+  "Happy to connect",
+  "Let's keep in touch",
+  "Count me in",
+  "Following along now",
+  "Just followed, let's keep in touch",
+  "In for this",
+  "Here for this one",
+];
+
+function shuffled(list) {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [choices[i], choices[j]] = [choices[j], choices[i]];
+    [out[i], out[j]] = [out[j], out[i]];
   }
-  return choices.slice(0, count);
+  return out;
 }
 
-function buildConnectPrompt() {
+// Display names carry emoji, taglines and separators: "Rachit \u{1F680} | building X".
+// Only use what still reads like a first name afterwards.
+const NAME_TITLES = new Set(["dr", "mr", "mrs", "ms", "miss", "prof", "sir", "eng"]);
+
+// Words that lead a display name without being one: "Building in Public",
+// "Daily Design Tips", "The Marketing Guy".
+const NOT_FIRST_NAMES = new Set([
+  "building", "builder", "the", "team", "official", "daily", "your", "my", "we",
+  "life", "startup", "startups", "founder", "founders", "dev", "devs", "design",
+  "designer", "ai", "crypto", "web", "news", "hq", "app", "apps", "studio",
+  "labs", "agency", "marketing", "growth", "product", "code", "coder", "indie",
+  "maker", "makers", "digital", "tech", "content", "creator", "community",
+  "school", "academy", "media", "podcast", "newsletter", "blog", "shop",
+  "store", "club", "network", "group", "project", "company", "inc", "llc", "co",
+  "learn", "learning", "build", "ship", "make", "money", "wealth", "fitness",
+]);
+
+function posterFirstName(target) {
+  const raw = String(target?.name || "").trim();
+  if (!raw) return "";
+  const words = raw
+    .split(/[|\u2022\u00b7\u2014\u2013,/(]/)[0]
+    .replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  for (const word of words) {
+    const clean = word.replace(/[^A-Za-z'\u2019-]/g, "");
+    if (!clean) continue;
+    if (NAME_TITLES.has(clean.toLowerCase())) continue; // Dr., Prof., ...
+    if (NOT_FIRST_NAMES.has(clean.toLowerCase())) return "";
+    if (!/^[A-Za-z][A-Za-z'\u2019-]{1,14}$/.test(clean)) return "";
+    if (clean.length > 3 && clean === clean.toUpperCase()) return "";
+    return clean;
+  }
+  return "";
+}
+
+function pickConnectLenses(count = 5) {
+  return shuffled(CONNECT_QUESTION_LENSES).slice(0, count);
+}
+
+function buildConnectPrompt(target) {
   const lenses = pickConnectLenses(2);
+  const openers = shuffled(CONNECT_OPENERS).slice(0, 3);
+  const name = posterFirstName(target);
+
   const lensList = lenses
-    .map(([label, hint], i) => `${i + 1}. "${label}" — ${hint}`)
+    .map(([label, hint], i) => `${i + 1}. "${label}" \u2014 ${hint}`)
     .join("\n");
+  const openerList = openers.map((o, i) => `${i + 1}. "${o}"`).join("\n");
   const output = [
-    '{"style":"Connect","text":"..."}',
-    '{"style":"Connect","text":"..."}',
-    '{"style":"Connect","text":"..."}',
+    ...openers.map(() => '{"style":"Connect","text":"..."}'),
     `{"style":"${lenses[0][0]}","text":"..."}`,
     `{"style":"${lenses[1][0]}","text":"..."}`,
   ].join(",");
 
+  const nameRule = name
+    ? `- The poster's first name is "${name}". Use it in exactly ONE of the five replies, where it falls naturally, usually at the end: "${openers[0]}, ${name}". Never use it more than once, and never open with it.`
+    : `- No usable name for the poster, so do not guess one or address them by handle.`;
+
   return `This post is an invitation to connect, not an argument to weigh in on. Ignore the normal Concrete/Question/Counter/Personal/Playful/Humorous poses. Generate exactly 5 short replies.
 
-THE FIRST THREE: plain, friendly ways of saying you would like to connect. NO question in these at all. Each a different wording of the same thing, 3 to 8 words. Think "Would love to connect", "Would be great to connect", "Let's connect", "Glad to connect", "Let's keep in touch", "Count me in", "Following along now". Different words each time, never the same phrase twice.
+THE FIRST THREE: plain, friendly ways of saying you would like to connect, with NO question in them. Build each one on the wording assigned below, in this order. Keep the assigned phrase recognisable, but you may add a few easy words around it so it does not read like a template. 3 to 10 words each.
+${openerList}
 
-THE LAST TWO: one short question, then the connect line. Two short sentences, not one long one. Keep each under 20 words. Use these angles:
+THE LAST TWO: one short question, then a connect line. Two short sentences, not one long one. Under 20 words each. Use these angles:
 ${lensList}
 
 EVERY REPLY:
 - Start with a capital letter.
-- Use the easiest everyday words. Short sentences. No jargon, no buzzwords, no formal phrasing, no long clauses.
-- Nothing about the topic itself: no take, no praise, no pitch, no credentials.
-- Ground a question in a real detail from the post if there is one. If the post is generic, keep the question simple and general. Never invent facts.
-- Exactly ONE of the five carries one understated emoji (🤝, 👋 or 🙂), never at the start.
+- Use the easiest everyday words. Short sentences. No jargon, no buzzwords, no formal phrasing.
+${nameRule}
+- At least ONE reply must pick up something specific from the post itself: a word they used, one of the groups they listed, the thing they said they are building. Use their own words, do not invent details.
+- Never repeat a phrase across the five replies.
+- No take on the topic, no praise, no pitch, no credentials.
+- Exactly ONE of the five carries one understated emoji (\u{1F91D}, \u{1F44B} or \u{1F642}), never at the start.
 - Sound like a real person being friendly, not a networking bot.
 
 Style label = the name given above. Return ONLY this JSON array, no prose, no markdown:
@@ -479,7 +548,7 @@ function renderThread(thread) {
   return `Thread so far (oldest first — background only, NOT the post you are replying to):\n"""\n${lines.join("\n\n")}\n"""\n\n`;
 }
 
-async function buildPrompts(tweetText, userIntent = "", thread = []) {
+async function buildPrompts(tweetText, userIntent = "", thread = [], target = null) {
   const threadBlock = renderThread(thread);
   const connect = isConnectPost(tweetText);
   const picks = await getRecentPicks(8);
@@ -506,7 +575,7 @@ async function buildPrompts(tweetText, userIntent = "", thread = []) {
       lang: "en",
       mode: "connect",
       system: SYSTEM_PROMPT_EN + calibration,
-      user: `${threadBlock}The post you are replying to:\n"""${tweetText}"""\n\n${buildConnectPrompt()}`,
+      user: `${threadBlock}The post you are replying to:\n"""${tweetText}"""\n\n${buildConnectPrompt(target)}`,
     };
   }
 
@@ -797,14 +866,14 @@ function normalizeReplies(list) {
     .filter((r) => r && r.text);
 }
 
-async function generateReplies(tweetText, userIntent = "", thread = []) {
+async function generateReplies(tweetText, userIntent = "", thread = [], target = null) {
   console.log("[TRH] generateReplies called, tweet length:", tweetText.length, "intent length:", (userIntent || "").length, "thread tweets:", (thread || []).length);
   const cfg = await getConfig();
   if (cfg.error) {
     console.warn("[TRH] config error:", cfg.error);
     return { ok: false, error: cfg.error };
   }
-  const prompts = await buildPrompts(tweetText, userIntent, thread);
+  const prompts = await buildPrompts(tweetText, userIntent, thread, target);
   console.log("[TRH] using provider:", cfg.provider.name, "model:", cfg.model, "mode:", prompts.mode, "connect:", isConnectPost(tweetText));
 
   let raw;
@@ -838,7 +907,7 @@ async function generateReplies(tweetText, userIntent = "", thread = []) {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "generateReplies") {
-    generateReplies(msg.tweetText || "", msg.userIntent || "", msg.thread || [])
+    generateReplies(msg.tweetText || "", msg.userIntent || "", msg.thread || [], msg.target || null)
       .then(sendResponse)
       .catch((e) => {
         console.error("[TRH] uncaught error:", e);

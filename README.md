@@ -88,6 +88,12 @@ shape. Three are plain, short ways of saying you'd like to connect, each worded
 differently, and two pair one short question with the connect line. No take on
 the topic, no pitch.
 
+The wording is dealt out from a pool in `background.js` rather than left to the
+model, which otherwise opened every set with "Would love to connect". One reply
+also addresses the poster by first name when their display name yields a usable
+one, and at least one picks up something specific from the post — a group they
+listed, a word they used — so the set does not read like a template.
+
 Heavy posts (grief, illness, a layoff, a company closing) drop the joke slots
 entirely: those replies come back labelled **Warm** instead of Playful or
 Humorous, so the label always matches what was actually written.
