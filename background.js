@@ -365,7 +365,8 @@ async function recordPick(tweetText, pickedText, pickedStyle) {
 const CONNECT_PATTERNS = [
   /let'?s\s+connect/i,
   /(want|looking|happy|open|would love)\s+to\s+connect/i,
-  /connect\s+with\s+(me|you|each other)/i,
+  /connect\s+with\s+(me|you|each\s+other|other|others|fellow|more|new|like.?minded|people|folks|anyone|everyone|founders|builders|makers|creators|devs|developers|designers|marketers|writers|students)/i,
+  /(looking|want|wanting|hoping|keen|here)\s+to\s+connect\s+with/i,
   /drop\s+(your|a)\s+(handle|@|link|profile|site|website)/i,
   /(reply|comment)\s+(below\s+)?(with|and)\b[^.!?]{0,40}(follow|connect|handle|dm)/i,
   /(introduce\s+yourself|say\s+hi|say\s+hello)/i,
@@ -391,10 +392,19 @@ function normalizePunctuation(text) {
     .replace(/[\u2018\u2019\u02bc\u00b4\u2032`]/g, "'")
     .replace(/[\u201c\u201d\u2033]/g, '"')
     .replace(/[\u2013\u2014]/g, "-")
+    // "looking to #connect with" is the same invitation as "looking to connect
+    // with"; the hash in the middle is the only thing stopping a match.
+    .replace(/#(?=[A-Za-z])/g, "")
     .replace(/\s+/g, " ");
 }
 
+// Tested against the raw text, before the hash is stripped: on its own the
+// word "connect" is too common to key off, but the hashtag is not.
+const CONNECT_HASHTAGS =
+  /#(let'?s?connect|connect|connecting|connections|networking|network|opentoconnect|letsnetwork)\b/i;
+
 function isConnectPost(text) {
+  if (CONNECT_HASHTAGS.test(String(text || ""))) return true;
   const t = normalizePunctuation(text);
   return CONNECT_PATTERNS.some((re) => re.test(t));
 }
