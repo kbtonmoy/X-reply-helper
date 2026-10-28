@@ -275,15 +275,22 @@ Generate exactly 6 replies. Each must use a DIFFERENT pose from the list below. 
 4. "Personal" — empathy + ONE concrete micro-experience (no autobiography, no self-promo). Makes you human, makes scrollers click your profile.
    Example: OP "startup is hard" → "first two weeks felt like vacation, then reality hit"
 
-5. "Playful" — a light, fun reaction. It can be cheeky, warm, or full of energy. It does not need a joke or punchline. Keep it short and natural.
+5. "Playful" — a light, fun reaction. It can be cheeky, warm, or full of energy. It does not need a joke or punchline. Keep it short and natural. On a heavy post, write a warm reaction instead and label it "Warm".
    Example: OP "I mass mass mass ship" → "This energy 😂"
 
-6. "Humorous" — the clear joke in the set. The joke MUST grow from a specific word, detail, claim, or image in the original post. It should not work unchanged under a different post. Use a funny comparison, playful exaggeration, or unexpected twist. Keep it kind, easy to understand, and one short sentence. Never mock the OP.
+6. "Humorous" — the clear joke in the set, unless the post is heavy, in which case write something kind and label it "Warm". The joke MUST grow from a specific word, detail, claim, or image in the original post. It should not work unchanged under a different post. Use a funny comparison, playful exaggeration, or unexpected twist. Keep it kind, easy to understand, and one short sentence. Never mock the OP.
    Example: OP "I mass mass mass ship" → "Your keyboard must think every key is Enter 😂"
 
 IF THE OP DOESN'T NATURALLY FIT A POSE: write a short Khabirul-voice reaction for that slot. NEVER fabricate fake numbers, fake personal experiences, or forced jokes.
 
-Style label = pose name. Return ONLY this JSON array, no prose, no markdown:
+═══ WHEN THE POST IS HEAVY ═══
+Grief, illness, a death, a layoff, a company closing, anything painful: do NOT
+joke, and do not stretch for lightness. Write the warmest honest thing you
+would actually say, and label that reply "Warm" instead of "Playful" or
+"Humorous". Both slots may be "Warm" on the same post. The label must describe
+what you actually wrote — never label a condolence "Humorous".
+
+Style label = pose name, or "Warm" for a light slot you deliberately did not make light. Return ONLY this JSON array, no prose, no markdown:
 [{"style":"Concrete","text":"..."},{"style":"Question","text":"..."},{"style":"Counter","text":"..."},{"style":"Personal","text":"..."},{"style":"Playful","text":"..."},{"style":"Humorous","text":"..."}]`;
 
 const SYSTEM_PROMPT_REWRITE_EN = `You're rewriting Khabirul's idea into Twitter replies. They have a SPECIFIC angle in mind — your job is to express THEIR idea naturally, not to invent your own takes.
@@ -323,13 +330,13 @@ Twitter-bro fillers ("lol", "tbh", "ngl") — sparingly, only if natural. Defaul
 ═══ OUTPUT — 5 REPLIES, EACH A DIFFERENT VARIANT OF KELLY'S SAME IDEA ═══
 1. "Short" — 2 to 7 words, the punchiest expression of their idea. Maximum compression.
 2. "Sentence" — one natural sentence, the cleanest direct expression.
-3. "Playful" — express the same idea in a light, fun, or cheeky way. It does not need a joke or punchline. Keep it short and natural.
-4. "Humorous" — turn the same idea into a clear, light joke that hooks into a specific word or detail from the original post. It must keep Khabirul's exact angle and should not work unchanged under a different post. Use a funny comparison, playful exaggeration, or unexpected twist. Keep it kind, simple, and short. Never mock the OP.
+3. "Playful" — express the same idea in a light, fun, or cheeky way. It does not need a joke or punchline. Keep it short and natural. If the post or Khabirul's angle is heavy, keep the idea but say it warmly and label it "Warm".
+4. "Humorous" — unless the post or Khabirul's angle is heavy, in which case express the same idea warmly and label it "Warm". Otherwise turn the same idea into a clear, light joke that hooks into a specific word or detail from the original post. It must keep Khabirul's exact angle and should not work unchanged under a different post. Use a funny comparison, playful exaggeration, or unexpected twist. Keep it kind, simple, and short. Never mock the OP.
 5. "Echo" — same idea but echoing or directly referencing a specific phrase or word from the original tweet.
 
 All five MUST express Khabirul's same core idea. They differ in length / tone / approach, NOT in meaning.
 
-Style label = variant name. Return ONLY this JSON, no prose, no markdown:
+Style label = variant name, or "Warm" for a light slot you deliberately did not make light. Return ONLY this JSON, no prose, no markdown:
 [{"style":"Short","text":"..."},{"style":"Sentence","text":"..."},{"style":"Playful","text":"..."},{"style":"Humorous","text":"..."},{"style":"Echo","text":"..."}]`;
 
 async function getRecentPicks(n = 8) {
@@ -365,6 +372,11 @@ const CONNECT_PATTERNS = [
   /who\s+(else\s+)?(is|are)\s+(here|building|working on)/i,
   /follow\s+(back|each other)/i,
   /looking\s+to\s+(meet|network)/i,
+  /dm\s+me\b/i,
+  /drop\s+(a\s+)?(hi|hello|wave)\b/i,
+  /let'?s\s+(network|collaborate|work\s+together)/i,
+  /happy\s+to\s+connect/i,
+  /(find|meet)\s+(new\s+)?(people|friends|founders|builders)\s+(here|on\s+(x|twitter))/i,
   /let'?s\s+(chat|talk|build\s+together|be\s+friends)/i,
   /open\s+to\s+connecting/i,
   /connect\s+with\s+(like.?minded|other|fellow)/i,
@@ -412,15 +424,35 @@ function pickConnectLenses(count = 5) {
 }
 
 function buildConnectPrompt() {
-  const lenses = pickConnectLenses();
+  const lenses = pickConnectLenses(2);
   const lensList = lenses
-    .map(([label, instruction], i) => `${i + 1}. "${label}" — ${instruction}`)
+    .map(([label, hint], i) => `${i + 1}. "${label}" — ${hint}`)
     .join("\n");
-  const output = lenses
-    .map(([label]) => `{"style":"${label}","text":"..."}`)
-    .join(",");
+  const output = [
+    '{"style":"Connect","text":"..."}',
+    '{"style":"Connect","text":"..."}',
+    '{"style":"Connect","text":"..."}',
+    `{"style":"${lenses[0][0]}","text":"..."}`,
+    `{"style":"${lenses[1][0]}","text":"..."}`,
+  ].join(",");
 
-  return `This post is an invitation to connect, not an argument to weigh in on. Ignore the normal Concrete/Question/Counter/Personal/Playful/Humorous poses. Generate exactly 5 connection replies using these five different curiosity lenses:\n${lensList}\n\nEvery reply must:\n- Start with a capital letter.\n- Use only easy, everyday words and short, simple sentences. Use two short sentences instead of one long sentence.\n- Ask exactly ONE genuine question and naturally signal that Khabirul wants to connect.\n- Use a different question idea and opening stem. Do not write five variations of "what are you building/working on?"\n- Ground the question in a concrete detail from the post when one exists. If the post is generic, use the assigned lens without inventing facts.\n- Vary placement: at least two should lead with the question, at least two should lead with the connection, and one may weave them together.\n- Vary the connection language. Possible registers include "would be good to connect", "glad to connect", "let's keep in touch", and "following along", but do not copy one phrase twice.\n- Include one relevant, understated emoji in exactly one of the five replies. Never start with it. Good fits include 🤝, 👋, or 🙂.\n- Sound warm, curious, and casual. Keep it concise, with no pitch, credentials, generic praise, jargon, or take on the topic.\n\nStyle label = the assigned lens. Return ONLY this JSON array, no prose, no markdown:\n[${output}]`;
+  return `This post is an invitation to connect, not an argument to weigh in on. Ignore the normal Concrete/Question/Counter/Personal/Playful/Humorous poses. Generate exactly 5 short replies.
+
+THE FIRST THREE: plain, friendly ways of saying you would like to connect. NO question in these at all. Each a different wording of the same thing, 3 to 8 words. Think "Would love to connect", "Would be great to connect", "Let's connect", "Glad to connect", "Let's keep in touch", "Count me in", "Following along now". Different words each time, never the same phrase twice.
+
+THE LAST TWO: one short question, then the connect line. Two short sentences, not one long one. Keep each under 20 words. Use these angles:
+${lensList}
+
+EVERY REPLY:
+- Start with a capital letter.
+- Use the easiest everyday words. Short sentences. No jargon, no buzzwords, no formal phrasing, no long clauses.
+- Nothing about the topic itself: no take, no praise, no pitch, no credentials.
+- Ground a question in a real detail from the post if there is one. If the post is generic, keep the question simple and general. Never invent facts.
+- Exactly ONE of the five carries one understated emoji (🤝, 👋 or 🙂), never at the start.
+- Sound like a real person being friendly, not a networking bot.
+
+Style label = the name given above. Return ONLY this JSON array, no prose, no markdown:
+[${output}]`;
 }
 
 function renderThread(thread) {
@@ -729,6 +761,17 @@ function capitalizeFirstLetter(text) {
   return prefix + letter.toUpperCase() + text.slice(prefix.length + 1);
 }
 
+// The model is told to label a deliberately un-light slot "Warm", but it
+// sometimes says it declined in the text and keeps the original label. Catch
+// only that explicit wording — guessing from tone would mislabel real jokes.
+const DECLINED_JOKE =
+  /^\s*(no|not)\s+(jokes?|words|punchlines?|humou?r)\b|nothing\s+(funny|light)\s+(about|here)/i;
+
+function styleFor(style, text) {
+  if (/^(playful|humorous)$/i.test(style) && DECLINED_JOKE.test(text)) return "Warm";
+  return style;
+}
+
 function normalizeReplies(list) {
   return list
     .map((r) => {
@@ -736,9 +779,10 @@ function normalizeReplies(list) {
         return { style: "Reply", text: capitalizeFirstLetter(r.trim()) };
       }
       if (!r || typeof r !== "object") return null;
-      const text = r.text ?? r.reply ?? r.content ?? r.message ?? "";
+      const raw = r.text ?? r.reply ?? r.content ?? r.message ?? "";
       const style = r.style ?? r.pose ?? r.type ?? r.label ?? "Reply";
-      return { style: String(style), text: capitalizeFirstLetter(String(text).trim()) };
+      const text = capitalizeFirstLetter(String(raw).trim());
+      return { style: styleFor(String(style), text), text };
     })
     .filter((r) => r && r.text);
 }

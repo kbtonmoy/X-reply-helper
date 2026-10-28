@@ -84,14 +84,13 @@ post above an image-only one.
 
 When a post is an invitation rather than an argument — "let's connect", "drop
 what you're building", "comment and I'll follow back" — the replies change
-shape: each one asks a single genuine question and says you would like to
-connect, phrased a different way each time. Each generation draws from a
-different mix of question angles, such as origin, current rabbit holes,
-tradeoffs, future goals, and hoped-for collaborations. No take on the topic,
-no pitch. Suggestions always begin with a capital letter, and one connection
-option uses a small, relevant emoji to keep the set warm.
+shape. Three are plain, short ways of saying you'd like to connect, each worded
+differently, and two pair one short question with the connect line. No take on
+the topic, no pitch.
 
-### Saying what you actually mean
+Heavy posts (grief, illness, a layoff, a company closing) drop the joke slots
+entirely: those replies come back labelled **Warm** instead of Playful or
+Humorous, so the label always matches what was actually written.
 
 Type your own angle into the box at the top of the panel and press **Enter**
 (Shift+Enter for a newline). This switches to rewrite mode: instead of inventing
