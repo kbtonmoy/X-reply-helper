@@ -92,6 +92,8 @@ Heavy posts (grief, illness, a layoff, a company closing) drop the joke slots
 entirely: those replies come back labelled **Warm** instead of Playful or
 Humorous, so the label always matches what was actually written.
 
+### Saying what you actually mean
+
 Type your own angle into the box at the top of the panel and press **Enter**
 (Shift+Enter for a newline). This switches to rewrite mode: instead of inventing
 six takes of its own, the model returns five phrasings of *your* idea — Short,
