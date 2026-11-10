@@ -428,261 +428,288 @@
     setTimeout(() => el.removeAttribute("data-flash"), 900);
   }
 
-  function useReply(idx) {
-    const reply = currentReplies[idx];
-    if (!reply) return;
-    insertIntoComposer(reply.text || "");
-    recordPick(reply);
-    flash(idx, "Inserted");
-  }
-
-  // navigator.clipboard is unavailable when the document isn't focused or the
-  // permission is denied, so keep the old textarea trick as a fallback.
-  function legacyCopy(text) {
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.setAttribute("readonly", "");
-      ta.style.cssText = "position:fixed;top:-1000px;opacity:0";
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand("copy");
-      ta.remove();
-      return ok;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function copyReply(idx) {
-    const reply = currentReplies[idx];
-    if (!reply) return;
-    const text = reply.text || "";
-    const fallback = () => flash(idx, legacyCopy(text) ? "Copied" : "Copy failed");
-    if (!navigator.clipboard?.writeText) return fallback();
-    navigator.clipboard.writeText(text).then(() => flash(idx, "Copied"), fallback);
-  }
-
-  function recordPick(reply) {
-    if (!chrome?.runtime?.id) return;
-    try {
-      chrome.runtime.sendMessage(
-        {
-          type: "replyPicked",
-          tweetText: lastTweetText,
-          pickedText: reply.text || "",
-          pickedStyle: reply.style || "",
-        },
-        () => {
-          // Swallow runtime.lastError silently — pick recording is best-effort.
-          void chrome.runtime.lastError;
-        },
-      );
-    } catch (e) {
-      console.warn("[TRH] recordPick send failed:", e);
-    }
-  }
-
-  function editableOf(composer) {
-    if (composer.matches?.('[contenteditable="true"]')) return composer;
-    return composer.querySelector?.('[contenteditable="true"]') || composer;
-  }
-
-  // The composer is torn down and rebuilt when it collapses, so the reference
-  // taken on focus can be pointing at a detached node by the time a reply is
-  // picked. Re-resolve it instead of inserting into nothing.
-  function liveComposer() {
-    if (activeComposer?.isConnected) return activeComposer;
-    const scope = document.querySelector('[role="dialog"]') || document;
-    const fresh = scope.querySelector('div[data-testid^="tweetTextarea_"]');
-    if (fresh) activeComposer = fresh;
-    return activeComposer?.isConnected ? activeComposer : null;
-  }
-
-  function insertIntoComposer(text) {
-    const composer = liveComposer();
-    if (!composer || !text) return;
-    const target = editableOf(composer);
-    target.focus();
-
-    // X's composer is Draft.js, so React owns every node inside it.
-    // document.execCommand("insertText") writes to that DOM directly, which
-    // leaves React reconciling against a tree it no longer recognises — it
-    // throws NotFoundError on removeChild and then re-applies the stray text on
-    // every later keystroke. Dispatching a paste event instead routes the text
-    // through Draft's own handler, so React stays the only thing touching the
-    // DOM.
-    let handled = false;
-    try {
-      const dt = new DataTransfer();
-      dt.setData("text/plain", text);
-      const evt = new ClipboardEvent("paste", {
-        clipboardData: dt,
-        bubbles: true,
-        cancelable: true,
-      });
-      // dispatchEvent returns false when the editor called preventDefault,
-      // which is how Draft signals it took the text.
-      handled = !target.dispatchEvent(evt);
-    } catch (e) {
-      console.warn("[TRH] paste insert failed:", e);
+    async function useReply(idx) {
+      const reply = currentReplies[idx];
+      if (!reply) return;
+      await insertIntoComposer(reply.text || "");
+      recordPick(reply);
+      flash(idx, "Inserted");
     }
 
-    // Plain textareas and anything that ignores the paste event.
-    if (!handled) {
+    // navigator.clipboard is unavailable when the document isn't focused or the
+    // permission is denied, so keep the old textarea trick as a fallback.
+    function legacyCopy(text) {
       try {
-        document.execCommand("insertText", false, text);
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.cssText = "position:fixed;top:-1000px;opacity:0";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        ta.remove();
+        return ok;
       } catch (e) {
-        console.warn("[TRH] insertText failed:", e);
+        return false;
       }
     }
-  }
 
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  function isExtensionContextLost(e) {
-    const msg = String(e?.message || e || "");
-    return (
-      !chrome?.runtime?.id ||
-      msg.includes("Extension context invalidated") ||
-      msg.includes("reading 'sendMessage'") ||
-      msg.includes("reading 'lastError'")
-    );
-  }
-
-  function requestReplies(tweetText, userIntent = "", thread = [], target = null) {
-    showPanel();
-    renderTarget(target, thread);
-    renderLoading();
-    if (!chrome?.runtime?.id) {
-      renderError("Extension was reloaded. Please refresh this page (Cmd+R).");
-      return;
+    function copyReply(idx) {
+      const reply = currentReplies[idx];
+      if (!reply) return;
+      const text = reply.text || "";
+      const fallback = () => flash(idx, legacyCopy(text) ? "Copied" : "Copy failed");
+      if (!navigator.clipboard?.writeText) return fallback();
+      navigator.clipboard.writeText(text).then(() => flash(idx, "Copied"), fallback);
     }
-    try {
-      chrome.runtime.sendMessage(
-        { type: "generateReplies", tweetText, userIntent, thread, target },
-        (resp) => {
-          if (chrome.runtime.lastError) {
-            renderError(chrome.runtime.lastError.message);
-            return;
-          }
-          if (!resp?.ok) {
-            renderError(resp?.error || "Unknown error");
-            return;
-          }
-          renderReplies(resp.replies);
-        },
-      );
-    } catch (e) {
-      if (isExtensionContextLost(e)) {
-        renderError("Extension was reloaded. Please refresh this page (Cmd+R).");
-      } else {
-        renderError(e?.message || String(e));
-      }
-    }
-  }
 
-  document.addEventListener("focusin", (e) => {
-    try {
-      const composer = e.target.closest?.('div[data-testid^="tweetTextarea_"]');
-      if (!composer) return;
-      if (composer === activeComposer) return;
-
-      const { target, context } = collectConversation(composer);
-      const sameTweet =
-        target &&
-        (target.text || target.quoted) === lastTweetText &&
-        currentReplies.length > 0;
-
-      // The composer is torn down and rebuilt when it collapses, so a rebuilt
-      // one is not a new post. Show what we already have instead of paying for
-      // another round trip.
-      if (sameTweet) {
-        activeComposer = composer;
-        lastThread = context;
-        lastTarget = target;
-        showPanel();
-        renderTarget(target, context);
-        return;
-      }
-
-      activeComposer = composer;
-      // New tweet → fresh intent. (Don't carry the previous tweet's angle over.)
-      clearIntent();
-      const tweetText = target ? target.text || target.quoted : "";
-      if (!tweetText) {
-        showPanel();
-        renderTarget(null, []);
-        renderError(
-          target && target.media
-            ? `${target.handle || "This post"} posted an image or video with no text, so there's nothing to read. Type what you want to say above and press Enter.`
-            : "Couldn't find the tweet text. Try clicking on the tweet first.",
+    function recordPick(reply) {
+      if (!chrome?.runtime?.id) return;
+      try {
+        chrome.runtime.sendMessage(
+          {
+            type: "replyPicked",
+            tweetText: lastTweetText,
+            pickedText: reply.text || "",
+            pickedStyle: reply.style || "",
+          },
+          () => {
+            // Swallow runtime.lastError silently — pick recording is best-effort.
+            void chrome.runtime.lastError;
+          },
         );
-        // Keep the target so an intent-driven rewrite still has its context.
-        lastTweetText = "";
-        lastThread = context;
-        lastTarget = target;
-        return;
+      } catch (e) {
+        console.warn("[TRH] recordPick send failed:", e);
       }
-      lastTweetText = tweetText;
-      lastThread = context;
-      lastTarget = target;
-      requestReplies(tweetText, "", context, target);
-    } catch (err) {
-      console.warn("[TRH] focusin handler error:", err);
-    }
-  });
-
-  document.addEventListener("mousedown", (e) => {
-    if (!isPanelVisible()) return;
-    if (shouldKeepPanelVisible(e.target)) return;
-    hidePanel();
-  });
-
-  document.addEventListener("focusout", () => {
-    if (!isPanelVisible()) return;
-    setTimeout(() => {
-      if (!isPanelVisible()) return;
-      if (shouldKeepPanelVisible(document.activeElement)) return;
-      if (pointerInPanel) return;
-      // Losing focus is not reason enough to close: X moves focus around on its
-      // own, and the composer collapses and re-renders when you click away.
-      // Clicking somewhere else is handled by the mousedown listener below.
-      if (!activeComposer || !activeComposer.isConnected) hidePanel();
-    }, 250);
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (!isPanelVisible()) return;
-
-    if (e.key === "Escape") {
-      hidePanel();
-      return;
     }
 
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault();
-      regenerate();
-      return;
+    function editableOf(composer) {
+      if (composer.matches?.('[contenteditable="true"]')) return composer;
+      return composer.querySelector?.('[contenteditable="true"]') || composer;
     }
 
-    // Number keys insert a reply, but only from an empty composer: typing a
-    // digit into a draft, or into the intent box, must still type a digit.
-    if (!/^[1-9]$/.test(e.key) || e.metaKey || e.ctrlKey || e.altKey) return;
-    const onComposer = document.activeElement?.closest?.(
-      'div[data-testid^="tweetTextarea_"]',
-    );
-    if (!onComposer || textOf(onComposer)) return;
-    const idx = Number(e.key) - 1;
-    if (idx >= currentReplies.length) return;
-    e.preventDefault();
-    useReply(idx);
-  });
-})();
+    // The composer is torn down and rebuilt when it collapses, so the reference
+    // taken on focus can be pointing at a detached node by the time a reply is
+    // picked. Re-resolve it instead of inserting into nothing.
+    function liveComposer() {
+      if (activeComposer?.isConnected) return activeComposer;
+      const scope = document.querySelector('[role="dialog"]') || document;
+      const fresh = scope.querySelector('div[data-testid^="tweetTextarea_"]');
+      if (fresh) activeComposer = fresh;
+      return activeComposer?.isConnected ? activeComposer : null;
+    }
+
+      async function insertIntoComposer(text) {
+        const composer = liveComposer();
+        if (!composer || !text) return;
+        const target = editableOf(composer);
+        target.focus();
+
+        // Use the real system clipboard so the paste goes through the browser's
+        // native pipeline — exactly the same codepath as the user pressing Ctrl-V.
+        // This makes Draft.js (X's editor) see a trusted paste and update all its
+        // internal state: character count, Reply-button enable, undo stack, etc.
+        let handled = false;
+
+        try {
+          // 1. Snapshot whatever the user had on the clipboard so we can restore it.
+          let savedClipboard = null;
+          try {
+            savedClipboard = await navigator.clipboard.readText();
+          } catch (_) {
+            // Read may fail if the clipboard is empty or holds non-text — that's OK.
+          }
+
+          // 2. Write our reply text onto the real clipboard.
+          await navigator.clipboard.writeText(text);
+
+          // 3. Execute a real paste — the browser reads from the system clipboard,
+          //    fires a trusted ClipboardEvent that Draft.js fully processes.
+          handled = document.execCommand("paste");
+
+          // 4. Restore the user's original clipboard contents.
+          if (savedClipboard != null) {
+            // Small delay so the paste finishes processing before we overwrite.
+            setTimeout(() => {
+              navigator.clipboard.writeText(savedClipboard).catch(() => { });
+            }, 100);
+          }
+        } catch (e) {
+          console.warn("[TRH] clipboard paste failed, falling back:", e);
+        }
+
+        // Fallback: synthetic ClipboardEvent (works most of the time but may not
+        // update X's button state in every scenario).
+        if (!handled) {
+          try {
+            const dt = new DataTransfer();
+            dt.setData("text/plain", text);
+            const evt = new ClipboardEvent("paste", {
+              clipboardData: dt,
+              bubbles: true,
+              cancelable: true,
+            });
+            handled = !target.dispatchEvent(evt);
+          } catch (e) {
+            console.warn("[TRH] synthetic paste failed:", e);
+          }
+        }
+
+        // Last resort for plain textareas that ignore paste events.
+        if (!handled) {
+          try {
+            document.execCommand("insertText", false, text);
+          } catch (e) {
+            console.warn("[TRH] insertText failed:", e);
+          }
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function isExtensionContextLost(e) {
+        const msg = String(e?.message || e || "");
+        return (
+          !chrome?.runtime?.id ||
+          msg.includes("Extension context invalidated") ||
+          msg.includes("reading 'sendMessage'") ||
+          msg.includes("reading 'lastError'")
+        );
+      }
+
+      function requestReplies(tweetText, userIntent = "", thread = [], target = null) {
+        showPanel();
+        renderTarget(target, thread);
+        renderLoading();
+        if (!chrome?.runtime?.id) {
+          renderError("Extension was reloaded. Please refresh this page (Cmd+R).");
+          return;
+        }
+        try {
+          chrome.runtime.sendMessage(
+            { type: "generateReplies", tweetText, userIntent, thread, target },
+            (resp) => {
+              if (chrome.runtime.lastError) {
+                renderError(chrome.runtime.lastError.message);
+                return;
+              }
+              if (!resp?.ok) {
+                renderError(resp?.error || "Unknown error");
+                return;
+              }
+              renderReplies(resp.replies);
+            },
+          );
+        } catch (e) {
+          if (isExtensionContextLost(e)) {
+            renderError("Extension was reloaded. Please refresh this page (Cmd+R).");
+          } else {
+            renderError(e?.message || String(e));
+          }
+        }
+      }
+
+      document.addEventListener("focusin", (e) => {
+        try {
+          const composer = e.target.closest?.('div[data-testid^="tweetTextarea_"]');
+          if (!composer) return;
+          if (composer === activeComposer) return;
+
+          const { target, context } = collectConversation(composer);
+          const sameTweet =
+            target &&
+            (target.text || target.quoted) === lastTweetText &&
+            currentReplies.length > 0;
+
+          // The composer is torn down and rebuilt when it collapses, so a rebuilt
+          // one is not a new post. Show what we already have instead of paying for
+          // another round trip.
+          if (sameTweet) {
+            activeComposer = composer;
+            lastThread = context;
+            lastTarget = target;
+            showPanel();
+            renderTarget(target, context);
+            return;
+          }
+
+          activeComposer = composer;
+          // New tweet → fresh intent. (Don't carry the previous tweet's angle over.)
+          clearIntent();
+          const tweetText = target ? target.text || target.quoted : "";
+          if (!tweetText) {
+            showPanel();
+            renderTarget(null, []);
+            renderError(
+              target && target.media
+                ? `${target.handle || "This post"} posted an image or video with no text, so there's nothing to read. Type what you want to say above and press Enter.`
+                : "Couldn't find the tweet text. Try clicking on the tweet first.",
+            );
+            // Keep the target so an intent-driven rewrite still has its context.
+            lastTweetText = "";
+            lastThread = context;
+            lastTarget = target;
+            return;
+          }
+          lastTweetText = tweetText;
+          lastThread = context;
+          lastTarget = target;
+          requestReplies(tweetText, "", context, target);
+        } catch (err) {
+          console.warn("[TRH] focusin handler error:", err);
+        }
+      });
+
+      document.addEventListener("mousedown", (e) => {
+        if (!isPanelVisible()) return;
+        if (shouldKeepPanelVisible(e.target)) return;
+        hidePanel();
+      });
+
+      document.addEventListener("focusout", () => {
+        if (!isPanelVisible()) return;
+        setTimeout(() => {
+          if (!isPanelVisible()) return;
+          if (shouldKeepPanelVisible(document.activeElement)) return;
+          if (pointerInPanel) return;
+          // Losing focus is not reason enough to close: X moves focus around on its
+          // own, and the composer collapses and re-renders when you click away.
+          // Clicking somewhere else is handled by the mousedown listener below.
+          if (!activeComposer || !activeComposer.isConnected) hidePanel();
+        }, 250);
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (!isPanelVisible()) return;
+
+        if (e.key === "Escape") {
+          hidePanel();
+          return;
+        }
+
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault();
+          regenerate();
+          return;
+        }
+
+        // Number keys insert a reply, but only from an empty composer: typing a
+        // digit into a draft, or into the intent box, must still type a digit.
+        if (!/^[1-9]$/.test(e.key) || e.metaKey || e.ctrlKey || e.altKey) return;
+        const onComposer = document.activeElement?.closest?.(
+          'div[data-testid^="tweetTextarea_"]',
+        );
+        if (!onComposer || textOf(onComposer)) return;
+        const idx = Number(e.key) - 1;
+        if (idx >= currentReplies.length) return;
+        e.preventDefault();
+        useReply(idx);
+      });
+    }) ();
