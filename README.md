@@ -60,7 +60,9 @@ that host; if you decline, generation will fail until you allow it under
 3. It generates six replies, each in a different style (Concrete, Question,
    Counter, Personal, Playful, Humorous). Playful stays light and fun. Humorous
    gives you a clear joke based on a specific detail in the post.
-4. Click a reply to insert it into the composer, then edit it as you like.
+4. Click a reply and it is typed into the composer a character at a time, at a
+   human pace, rather than dropped in at once. Picking another reply mid-way
+   cancels the first. Nothing touches your system clipboard.
 5. **Regenerate** gets a fresh set; **Esc** or clicking away closes the panel.
 
 ### Threads

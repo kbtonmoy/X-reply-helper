@@ -421,18 +421,21 @@
     });
   }
 
-  function flash(idx, label) {
+  let flashTimer = null;
+  function flash(idx, label, holdMs = 900) {
     const el = panel?.querySelector(`.trh-card[data-idx="${idx}"]`);
     if (!el) return;
+    clearTimeout(flashTimer);
     el.dataset.flash = label;
-    setTimeout(() => el.removeAttribute("data-flash"), 900);
+    flashTimer = setTimeout(() => el.removeAttribute("data-flash"), holdMs);
   }
 
     async function useReply(idx) {
       const reply = currentReplies[idx];
       if (!reply) return;
-      await insertIntoComposer(reply.text || "");
       recordPick(reply);
+      flash(idx, "Typing\u2026", 60000);
+      await insertIntoComposer(reply.text || "");
       flash(idx, "Inserted");
     }
 
@@ -499,69 +502,88 @@
       return activeComposer?.isConnected ? activeComposer : null;
     }
 
+      // Typing cadence. Real keystrokes are out of reach: a content script can
+      // only dispatch untrusted events, and the editor ignores those. Of the
+      // ways to put text in, measured against a real Draft.js editor:
+      //   execCommand("insertText")  - mutates DOM React owns, kills the editor
+      //   beforeinput event          - ignored outright, nothing inserted
+      //   textInput event            - state updates but the DOM shows one char,
+      //                                since Draft expects the browser to do the
+      //                                insert and a synthetic event never does
+      //   paste event                - state and DOM both correct
+      // So the text goes in through the editor's paste handler, one character at
+      // a time, which reads as typing and never touches the system clipboard.
+      const TYPE_MS = 16;
+      const TYPE_JITTER = 18;
+      const PAUSE_AFTER = { ",": 90, ".": 160, "!": 160, "?": 160, "\n": 180 };
+      let typingRun = 0;
+
+      function sendChar(target, ch) {
+        const dt = new DataTransfer();
+        dt.setData("text/plain", ch);
+        return !target.dispatchEvent(
+          new ClipboardEvent("paste", {
+            clipboardData: dt,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      }
+
       async function insertIntoComposer(text) {
         const composer = liveComposer();
         if (!composer || !text) return;
         const target = editableOf(composer);
         target.focus();
 
-        // Use the real system clipboard so the paste goes through the browser's
-        // native pipeline — exactly the same codepath as the user pressing Ctrl-V.
-        // This makes Draft.js (X's editor) see a trusted paste and update all its
-        // internal state: character count, Reply-button enable, undo stack, etc.
-        let handled = false;
+        const run = ++typingRun;
+        const before = textOf(target);
 
+        for (let i = 0; i < text.length; i++) {
+          // Picking another reply, or losing the composer, cancels this one.
+          if (run !== typingRun || !target.isConnected) return;
+
+          const ch = text[i];
+          const handled = sendChar(target, ch);
+
+          // If the very first character did not register, the editor is not one
+          // that takes paste events. Fall back rather than type into nothing.
+          if (i === 0 && !handled && textOf(target) === before) {
+            return fallbackInsert(target, text);
+          }
+
+          // Long replies would crawl at a fixed per-character delay, so the
+          // pace tightens as the text grows while staying visibly progressive.
+          const scale = Math.min(1, Math.max(0.5, 90 / text.length));
+          const pause =
+            (TYPE_MS +
+              Math.random() * TYPE_JITTER +
+              (PAUSE_AFTER[ch] || 0) +
+              // the odd longer beat, the way a person stops mid-sentence
+              (Math.random() < 0.04 ? 100 + Math.random() * 150 : 0)) *
+            scale;
+          await new Promise((r) => setTimeout(r, pause));
+        }
+      }
+
+      // Plain textareas and anything else that ignores paste events.
+      function fallbackInsert(target, text) {
         try {
-          // 1. Snapshot whatever the user had on the clipboard so we can restore it.
-          let savedClipboard = null;
-          try {
-            savedClipboard = await navigator.clipboard.readText();
-          } catch (_) {
-            // Read may fail if the clipboard is empty or holds non-text — that's OK.
-          }
-
-          // 2. Write our reply text onto the real clipboard.
-          await navigator.clipboard.writeText(text);
-
-          // 3. Execute a real paste — the browser reads from the system clipboard,
-          //    fires a trusted ClipboardEvent that Draft.js fully processes.
-          handled = document.execCommand("paste");
-
-          // 4. Restore the user's original clipboard contents.
-          if (savedClipboard != null) {
-            // Small delay so the paste finishes processing before we overwrite.
-            setTimeout(() => {
-              navigator.clipboard.writeText(savedClipboard).catch(() => { });
-            }, 100);
-          }
+          const dt = new DataTransfer();
+          dt.setData("text/plain", text);
+          const evt = new ClipboardEvent("paste", {
+            clipboardData: dt,
+            bubbles: true,
+            cancelable: true,
+          });
+          if (!target.dispatchEvent(evt)) return;
         } catch (e) {
-          console.warn("[TRH] clipboard paste failed, falling back:", e);
+          console.warn("[TRH] paste insert failed:", e);
         }
-
-        // Fallback: synthetic ClipboardEvent (works most of the time but may not
-        // update X's button state in every scenario).
-        if (!handled) {
-          try {
-            const dt = new DataTransfer();
-            dt.setData("text/plain", text);
-            const evt = new ClipboardEvent("paste", {
-              clipboardData: dt,
-              bubbles: true,
-              cancelable: true,
-            });
-            handled = !target.dispatchEvent(evt);
-          } catch (e) {
-            console.warn("[TRH] synthetic paste failed:", e);
-          }
-        }
-
-        // Last resort for plain textareas that ignore paste events.
-        if (!handled) {
-          try {
-            document.execCommand("insertText", false, text);
-          } catch (e) {
-            console.warn("[TRH] insertText failed:", e);
-          }
+        try {
+          document.execCommand("insertText", false, text);
+        } catch (e) {
+          console.warn("[TRH] insertText failed:", e);
         }
       }
 
